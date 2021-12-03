@@ -2,9 +2,122 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Blog of software writer Chee Yeo</title>
-    <description>Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.</description>
-    <link>https://cheeyeo.uk/</link>
-    <atom:link href="https://cheeyeo.uk/feed.xml" rel="self" type="application/rss+xml" />
+    <description>Chee Yeo is a software developer with interests in machine learning and cloud computing.</description>
+    <link>https://www.cheeyeo.dev/</link>
+    <atom:link href="https://www.cheeyeo.dev/feed.xml" rel="self" type="application/rss+xml" />
+    
+      <item>
+        <title>Fixing thunderbolt3 on Ubuntu 18.04 LTS for eGPU</title>
+        <description>
+&lt;p&gt;On a previous post on using &lt;a href=&quot;https://www.cheeyeo.dev/egpu/ubuntu/18.04/machine-learning/2020/03/13/multi-egpu-ubuntu/&quot;&gt;eGPU for Machine Learning&lt;/a&gt;, I described a process of setting up an external GPU for local distributed training of ML models.&lt;/p&gt;
+
+&lt;p&gt;It relies on using the &lt;strong&gt;bolt&lt;/strong&gt; package provided upstream which is fixed at &lt;strong&gt;0.5.0&lt;/strong&gt; for Ubuntu 18.04 LTS. &lt;/p&gt;
+
+&lt;p&gt;After a kernel update to version &lt;strong&gt;4.15.0-163-generic&lt;/strong&gt;, the thunderbolt controller was put into a forced shutdown everytime the system starts, resulting in the thunderbolt3 controller not being able to recognise the eGPU.&lt;/p&gt;
+
+&lt;p&gt;After some digging, I discovered that the thunderbolt controller is running as a background service under systemctl. This means that we can stop this service and replace it with another one which calls an updated version of bolt.&lt;/p&gt;
+
+&lt;p&gt;I removed the system version and resinstalled a later version of boltd to test if this would fix the issue of the forced shutdown detailed above.&lt;/p&gt;
+
+&lt;p&gt;The process I took was as follows:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Download the &lt;a href=&quot;https://gitlab.freedesktop.org/bolt/bolt/-/releases&quot;&gt;bolt source&lt;/a&gt;. I picked version 0.7.0.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Setup a venv through python as the build stage requires meson, a python package, for compilation.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-console&quot; data-lang=&quot;console&quot;&gt;&lt;span class=&quot;lineno&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;gp&quot;&gt;#&lt;/span&gt; make sure in virtual env and install meson and ninja 
+&lt;span class=&quot;lineno&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;python3 -m venv boltvenv&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;3&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;source boltvenv/bin/activate&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;4&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;pip install meson&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;5&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;pip install ninja&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;6&lt;/span&gt; 
+&lt;span class=&quot;lineno&quot;&gt;7&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;sudo apt-get install libpolkit-gobject-1-dev&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Compile bolt from source as follows:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-console&quot; data-lang=&quot;console&quot;&gt;&lt;span class=&quot;lineno&quot;&gt; 1&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;curl -L https://gitlab.freedesktop.org/bolt/bolt/-/archive/0.7/bolt-0.7.tar.gz -o bolt.tar.gz&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt; 2&lt;/span&gt; 
+&lt;span class=&quot;lineno&quot;&gt; 3&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;tar -zxvf bolt.tar.gz&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt; 4&lt;/span&gt; 
+&lt;span class=&quot;lineno&quot;&gt; 5&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;cd bolt-0.7.0&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt; 6&lt;/span&gt; 
+&lt;span class=&quot;lineno&quot;&gt; 7&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;meson build \&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt; 8&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;      --sysconfdir=/etc \&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt; 9&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;      --localstatedir=/var \&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;10&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;      --sharedstatedir=/var/lib&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;pre&gt;&lt;code&gt;Note that I left the build parameters as the defaults as documented on the project website.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Build the bolt package:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-console&quot; data-lang=&quot;console&quot;&gt;&lt;span class=&quot;lineno&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;ninja -C build&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;2&lt;/span&gt; 
+&lt;span class=&quot;lineno&quot;&gt;3&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;ninja -C build test&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;4&lt;/span&gt; 
+&lt;span class=&quot;lineno&quot;&gt;5&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;sudo ninja -C build install&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;6&lt;/span&gt; 
+&lt;span class=&quot;lineno&quot;&gt;7&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;sudo systemctl daemon-reload&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Restart the system.&lt;/p&gt;
+
+&lt;p&gt;If the above goes well, you should have the bolt service running after running &lt;strong&gt;sudo systemctl status bolt&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/img/egpu/bolt_systemctl.png&quot; alt=&quot;Output of systemctl status for bolt&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Running &lt;strong&gt;boltctl –version&lt;/strong&gt; should also report version 0.7.0&lt;/p&gt;
+
+&lt;p&gt;Next check that the current device (laptop) is registered successfully as a domain under bolt via :&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-console&quot; data-lang=&quot;console&quot;&gt;&lt;span class=&quot;lineno&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;boltctl domains&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/img/egpu/bolt_domains.png&quot; alt=&quot;Output of boltctl domains&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Connect the eGPU, reboot and check that its connected and registered with bolt:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-console&quot; data-lang=&quot;console&quot;&gt;&lt;span class=&quot;lineno&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;boltctl list&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/img/egpu/bolt_list.png&quot; alt=&quot;Output of boltctl list&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/img/egpu/gnome_panel.png&quot; alt=&quot;GNOME Panel view of thunderbolt&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Note that the screenshots above show that the eGPU has been purposefully disconnected to ensure that the device has been successfully registered on system reboot. Using version 0.5.0 of bolt package, it was blank.&lt;/p&gt;
+
+&lt;p&gt;The screenshots also shows that it has managed to register the eGPU on reboot. The GNOME control panel has also displayed the registered eGPU which shows that the bolt service is running properly.&lt;/p&gt;
+
+&lt;p&gt;Note that you will need to plugin the eGPU and restart before &lt;strong&gt;nvidia-smi&lt;/strong&gt; can recognise the additional GPU.&lt;/p&gt;
+
+&lt;h3 id=&quot;further-notes&quot;&gt;Further Notes&lt;/h3&gt;
+
+&lt;p&gt;If the eGPU is still not recognised you can check that the physical thunderbolt controller is actually enabled under the BIOS.&lt;/p&gt;
+
+&lt;p&gt;I ran the following command from the terminal since I can’t get into BIOS due to GRUB:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-console&quot; data-lang=&quot;console&quot;&gt;&lt;span class=&quot;lineno&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;sudo systemctl reboot --firmware-setup&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Check for the presence of thunderbolt3 hardware controller and ensure its enabled.&lt;/p&gt;
+
+&lt;p&gt;As an additional measure, I also enabled the option to detect thunderbolt devices with PCIe cards installed to be initiated on startup, if its available as an option in your BIOS settings.&lt;/p&gt;
+
+&lt;h3 id=&quot;summary&quot;&gt;Summary&lt;/h3&gt;
+
+&lt;p&gt;The thunderbolt3 controller in Ubuntu runs as a background service of &lt;strong&gt;boltd&lt;/strong&gt; which can be upgraded manually to a later version to address issues of force shutdowns. Note that I only tested version 0.7.0. since its the only version I can get to work with the GNOME control panel.&lt;/p&gt;
+
+&lt;p&gt;Happy hacking !!!&lt;/p&gt;
+</description>
+        <pubDate>Tue, 23 Nov 2021 00:00:00 +0000</pubDate>
+        <link>https://www.cheeyeo.dev/machine-learning/thunderbolt3/egpu/ubuntu/18.04/2021/11/23/thunderbolt3-egpu-ubuntu/</link>
+        <guid isPermaLink="true">https://www.cheeyeo.dev/machine-learning/thunderbolt3/egpu/ubuntu/18.04/2021/11/23/thunderbolt3-egpu-ubuntu/</guid>
+      </item>
     
       <item>
         <title>Guide to training your own object detector using the TFOD API V2</title>
@@ -322,8 +435,8 @@ tensorboard --logdir /tfod_example/lisa/experiments/training
 &lt;p&gt;Happy Hacking !&lt;/p&gt;
 </description>
         <pubDate>Wed, 03 Nov 2021 00:00:00 +0000</pubDate>
-        <link>https://cheeyeo.uk/machine-learning/deep-learning/computer-vision/tensorflow/2021/11/03/using-tensorflow-object-detection-api/</link>
-        <guid isPermaLink="true">https://cheeyeo.uk/machine-learning/deep-learning/computer-vision/tensorflow/2021/11/03/using-tensorflow-object-detection-api/</guid>
+        <link>https://www.cheeyeo.dev/machine-learning/deep-learning/computer-vision/tensorflow/2021/11/03/using-tensorflow-object-detection-api/</link>
+        <guid isPermaLink="true">https://www.cheeyeo.dev/machine-learning/deep-learning/computer-vision/tensorflow/2021/11/03/using-tensorflow-object-detection-api/</guid>
       </item>
     
       <item>
@@ -529,8 +642,8 @@ tensorboard --logdir /tfod_example/lisa/experiments/training
 &lt;span class=&quot;go&quot;&gt;cd &amp;lt;target container path&amp;gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 </description>
         <pubDate>Wed, 27 Oct 2021 01:00:00 +0100</pubDate>
-        <link>https://cheeyeo.uk/cuda/machine-learning/mlops/2021/10/27/guide-to-installing-cuda/</link>
-        <guid isPermaLink="true">https://cheeyeo.uk/cuda/machine-learning/mlops/2021/10/27/guide-to-installing-cuda/</guid>
+        <link>https://www.cheeyeo.dev/cuda/machine-learning/mlops/2021/10/27/guide-to-installing-cuda/</link>
+        <guid isPermaLink="true">https://www.cheeyeo.dev/cuda/machine-learning/mlops/2021/10/27/guide-to-installing-cuda/</guid>
       </item>
     
       <item>
@@ -594,8 +707,8 @@ tensorboard --logdir /tfod_example/lisa/experiments/training
 &lt;p&gt;Happy Hacking!&lt;/p&gt;
 </description>
         <pubDate>Sun, 21 Mar 2021 00:00:00 +0000</pubDate>
-        <link>https://cheeyeo.uk/machine-learning/mxnet/terraform/devops/mlops/2021/03/21/machine-learning-model-as-a-service/</link>
-        <guid isPermaLink="true">https://cheeyeo.uk/machine-learning/mxnet/terraform/devops/mlops/2021/03/21/machine-learning-model-as-a-service/</guid>
+        <link>https://www.cheeyeo.dev/machine-learning/mxnet/terraform/devops/mlops/2021/03/21/machine-learning-model-as-a-service/</link>
+        <guid isPermaLink="true">https://www.cheeyeo.dev/machine-learning/mxnet/terraform/devops/mlops/2021/03/21/machine-learning-model-as-a-service/</guid>
       </item>
     
       <item>
@@ -794,8 +907,8 @@ tensorboard --logdir /tfod_example/lisa/experiments/training
 
 </description>
         <pubDate>Mon, 01 Mar 2021 00:00:00 +0000</pubDate>
-        <link>https://cheeyeo.uk/tensorflow-2.0/machine-learning/pytest/testing/2021/03/01/testing-machine-learning/</link>
-        <guid isPermaLink="true">https://cheeyeo.uk/tensorflow-2.0/machine-learning/pytest/testing/2021/03/01/testing-machine-learning/</guid>
+        <link>https://www.cheeyeo.dev/tensorflow-2.0/machine-learning/pytest/testing/2021/03/01/testing-machine-learning/</link>
+        <guid isPermaLink="true">https://www.cheeyeo.dev/tensorflow-2.0/machine-learning/pytest/testing/2021/03/01/testing-machine-learning/</guid>
       </item>
     
       <item>
@@ -897,8 +1010,8 @@ tensorboard --logdir /tfod_example/lisa/experiments/training
 
 </description>
         <pubDate>Tue, 12 Jan 2021 00:00:00 +0000</pubDate>
-        <link>https://cheeyeo.uk/mxnet/machine-learning/2021/01/12/mxnet-build-errors/</link>
-        <guid isPermaLink="true">https://cheeyeo.uk/mxnet/machine-learning/2021/01/12/mxnet-build-errors/</guid>
+        <link>https://www.cheeyeo.dev/mxnet/machine-learning/2021/01/12/mxnet-build-errors/</link>
+        <guid isPermaLink="true">https://www.cheeyeo.dev/mxnet/machine-learning/2021/01/12/mxnet-build-errors/</guid>
       </item>
     
       <item>
@@ -1016,8 +1129,8 @@ tensorboard --logdir /tfod_example/lisa/experiments/training
 
 </description>
         <pubDate>Fri, 08 Jan 2021 00:00:00 +0000</pubDate>
-        <link>https://cheeyeo.uk/python/elasticsearch/pytest/2021/01/08/pytest-elasticsearch/</link>
-        <guid isPermaLink="true">https://cheeyeo.uk/python/elasticsearch/pytest/2021/01/08/pytest-elasticsearch/</guid>
+        <link>https://www.cheeyeo.dev/python/elasticsearch/pytest/2021/01/08/pytest-elasticsearch/</link>
+        <guid isPermaLink="true">https://www.cheeyeo.dev/python/elasticsearch/pytest/2021/01/08/pytest-elasticsearch/</guid>
       </item>
     
       <item>
@@ -1148,8 +1261,8 @@ tensorboard --logdir /tfod_example/lisa/experiments/training
 
 </description>
         <pubDate>Wed, 08 Apr 2020 01:00:00 +0100</pubDate>
-        <link>https://cheeyeo.uk/machine-learning/tensorflow/dataset/2020/04/08/tf-dataset/</link>
-        <guid isPermaLink="true">https://cheeyeo.uk/machine-learning/tensorflow/dataset/2020/04/08/tf-dataset/</guid>
+        <link>https://www.cheeyeo.dev/machine-learning/tensorflow/dataset/2020/04/08/tf-dataset/</link>
+        <guid isPermaLink="true">https://www.cheeyeo.dev/machine-learning/tensorflow/dataset/2020/04/08/tf-dataset/</guid>
       </item>
     
       <item>
@@ -1196,8 +1309,8 @@ tensorboard --logdir /tfod_example/lisa/experiments/training
 
 </description>
         <pubDate>Tue, 31 Mar 2020 01:00:00 +0100</pubDate>
-        <link>https://cheeyeo.uk/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/31/types-of-autoencoders-part2/</link>
-        <guid isPermaLink="true">https://cheeyeo.uk/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/31/types-of-autoencoders-part2/</guid>
+        <link>https://www.cheeyeo.dev/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/31/types-of-autoencoders-part2/</link>
+        <guid isPermaLink="true">https://www.cheeyeo.dev/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/31/types-of-autoencoders-part2/</guid>
       </item>
     
       <item>
@@ -1300,121 +1413,8 @@ tensorboard --logdir /tfod_example/lisa/experiments/training
 &lt;p&gt;Happy Hacking.&lt;/p&gt;
 </description>
         <pubDate>Mon, 23 Mar 2020 00:00:00 +0000</pubDate>
-        <link>https://cheeyeo.uk/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/23/types-of-autoencoders-part1/</link>
-        <guid isPermaLink="true">https://cheeyeo.uk/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/23/types-of-autoencoders-part1/</guid>
-      </item>
-    
-      <item>
-        <title>Multi-gpu setup on Ubuntu 18.04</title>
-        <description>&lt;p&gt;When training large image datasets, it is beneficial to have more than 1 GPU available, to spread the workload with distributed training and reduce the amount of training time. However, setting up an eGPU on Ubuntu pose many challenges.&lt;/p&gt;
-
-&lt;p&gt;This article aims to explain how I managed to setup a Sonnet Breakaway box with a spare GTX-1060 to work with the built-in GTX-1060 card, running on Ubuntu 18.04 with kernel 4.15.0-88-generic. &lt;/p&gt;
-
-&lt;p&gt;Before you can proceed, you need to have a working nvidia graphics card with the right drivers. Run &lt;code&gt;nvidia-smi -L&lt;/code&gt; to ensure that it returns the current graphics card.&lt;/p&gt;
-
-&lt;p&gt;These are the steps I took:&lt;/p&gt;
-
-&lt;h3 id=&quot;process&quot;&gt;Process&lt;/h3&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;Plugin and power the egpu box. Navigate to the &lt;code&gt;Settings &amp;gt; Devices &amp;gt; Thunderbolt&lt;/code&gt;, you should see the egpu box listed if its connected. Note that Ubuntu is able to perform authorization automatically. If all goes well, you should see the screenshot below:&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/img/egpu/ubuntu_thunderbolt_authorized.png&quot; alt=&quot;Output of thunderbolt devices screen&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;For sanity check, you can also run the &lt;code&gt;boltctl&lt;/code&gt; command and check that the egpu is connected.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/img/egpu/egpu_boltctl_list.png&quot; alt=&quot;Output of botlctl&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;If there is an error with the authorization or the device is not recognized, you might have to switch off thunderbolt security under BIOS or run the following command:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-console&quot; data-lang=&quot;console&quot;&gt;&lt;span class=&quot;lineno&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;go&quot;&gt;sudo sh -c &amp;#39;echo 1 &amp;gt; /sys/bus/thunderbolt/devices/0-0/authorized&amp;#39;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Update the above based on your device details.&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;Update the &lt;code&gt;/etc/default/grub&lt;/code&gt; file to include “nvidia.modset=1” at the end of the “GRUB_CMDLINE_LINUX” like so:&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;lineno&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;GRUB_CMDLINE_LINUX_DEFAULT&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;quiet splash nvidia.modeset=1&amp;quot;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Run &lt;code&gt;sudo update-grub&lt;/code&gt; and reboot.&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;Create a X11 config file in &lt;code&gt;/etc/X11/&lt;/code&gt; with the following for the egpu only:&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;lineno&quot;&gt; 1&lt;/span&gt; Section &lt;span class=&quot;s2&quot;&gt;&amp;quot;Module&amp;quot;&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt; 2&lt;/span&gt;     Load           &lt;span class=&quot;s2&quot;&gt;&amp;quot;modesetting&amp;quot;&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt; 3&lt;/span&gt; EndSection
-&lt;span class=&quot;lineno&quot;&gt; 4&lt;/span&gt; 
-&lt;span class=&quot;lineno&quot;&gt; 5&lt;/span&gt; Section &lt;span class=&quot;s2&quot;&gt;&amp;quot;Device&amp;quot;&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt; 6&lt;/span&gt;     Identifier     &lt;span class=&quot;s2&quot;&gt;&amp;quot;Device0&amp;quot;&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt; 7&lt;/span&gt;     Driver         &lt;span class=&quot;s2&quot;&gt;&amp;quot;nvidia&amp;quot;&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt; 8&lt;/span&gt;     BusID          &lt;span class=&quot;s2&quot;&gt;&amp;quot;7:0:0&amp;quot;&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt; 9&lt;/span&gt;     Option         &lt;span class=&quot;s2&quot;&gt;&amp;quot;AllowEmptyInitialConfiguration&amp;quot;&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt;10&lt;/span&gt;     Option         &lt;span class=&quot;s2&quot;&gt;&amp;quot;AllowExternalGpus&amp;quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;True&amp;quot;&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt;11&lt;/span&gt; EndSection&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Note that this config file is only needed by the egpu and should only reference the bus and device id of the egpu with the allow external gpus option set.&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;Assuming we are using gnome desktop manager, we need to add the following to &lt;code&gt;/etc/X11/XWrapper.config&lt;/code&gt;:&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;lineno&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;needs_root_rights&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;yes
-&lt;span class=&quot;lineno&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;allowed_users&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;console&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Run &lt;code&gt;sudo dpkg_reconfigure xserver-xorg-legacy&lt;/code&gt;. Select the console users option to run as root when presented with the screen.&lt;/p&gt;
-
-&lt;p&gt;This is to allow gdm3 to load the device driver as root else you will encounter errors such as &lt;code&gt;/usr/lib/gdm3/gdm-x-session[2866]: (EE) NVIDIA(GPU-1): Failed to initialize the NVIDIA GPU at PCI&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;This does not apply if you are using other desktop managers such as lightdm.&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;Leave the egpu connected and reboot the system. If all goes well, you should be able to login through the desktop manager. Checking with &lt;code&gt;nvidia-smi&lt;/code&gt; you should see the external egpu loaded and connected.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/img/egpu/egpu_authorized.png&quot; alt=&quot;Output of nvidia-smi&quot; /&gt;
-&lt;img src=&quot;/assets/img/egpu/egpu_nvidia_smi.png&quot; alt=&quot;Output of nvidia-smi query&quot; /&gt;&lt;/p&gt;
-
-&lt;h3 id=&quot;caveats&quot;&gt;Caveats&lt;/h3&gt;
-
-&lt;p&gt;Linux does not support hot-swapping of eGPU devices which means you need to deactivate the X11 config if you are not using the eGPU and reactivate it when you do. &lt;/p&gt;
-
-&lt;p&gt;I find the easiest way to do so is to wrap the above into a script which renames the config file when you want to use the eGPU and then reboot the system. &lt;/p&gt;
-
-&lt;p&gt;An example called &lt;code&gt;activate_egpu.sh&lt;/code&gt; is as follows:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;lineno&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt;2&lt;/span&gt; 
-&lt;span class=&quot;lineno&quot;&gt;3&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Activates EGPU script in /etc/X11/egpu.conf&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt;4&lt;/span&gt; sudo prime-select nvidia
-&lt;span class=&quot;lineno&quot;&gt;5&lt;/span&gt; sudo mv /etc/X11/egpu.conf.backup /etc/X11/egpu.conf&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Make sure you reboot the system with the eGPU plugged in still before the changes will take effect. Other articles reference logging in/out as the current user but it doesn’t work in my instance.&lt;/p&gt;
-
-&lt;p&gt;It is important to move/rename the egpu config file under &lt;code&gt;/etc/X11&lt;/code&gt; back else the system will display a black screen upon reboot.&lt;/p&gt;
-
-&lt;p&gt;Another script such as &lt;code&gt;deactivate_egpu.sh&lt;/code&gt; can be used to do the reverse. Run the following script then disconnect/unplug the eGPU:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;lineno&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt;2&lt;/span&gt; 
-&lt;span class=&quot;lineno&quot;&gt;3&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Deactivates EGPU script in /etc/X11/egpu.conf&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt;4&lt;/span&gt; sudo prime-select nvidia&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;lineno&quot;&gt;5&lt;/span&gt; sudo mv /etc/X11/egpu.conf /etc/X11/egpu.conf.backup&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Reboot the system and it should return you to a single gpu desktop.&lt;/p&gt;
-
-&lt;p&gt;Another area which is not covered and outside the scope of this article is the use of external displays. One might have to re-run &lt;code&gt;xrandr&lt;/code&gt; in order to setup the displays properly.&lt;/p&gt;
-
-&lt;p&gt;Following on this article, I hope to continue this thread with instructions on how to install cuda and tensorflow for machine learning development.&lt;/p&gt;
-
-&lt;p&gt;Happy Hacking!&lt;/p&gt;
-</description>
-        <pubDate>Fri, 13 Mar 2020 00:00:00 +0000</pubDate>
-        <link>https://cheeyeo.uk/egpu/ubuntu/18.04/machine-learning/2020/03/13/multi-egpu-ubuntu/</link>
-        <guid isPermaLink="true">https://cheeyeo.uk/egpu/ubuntu/18.04/machine-learning/2020/03/13/multi-egpu-ubuntu/</guid>
+        <link>https://www.cheeyeo.dev/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/23/types-of-autoencoders-part1/</link>
+        <guid isPermaLink="true">https://www.cheeyeo.dev/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/23/types-of-autoencoders-part1/</guid>
       </item>
     
   </channel>
