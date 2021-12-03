@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Using around_save callbacks in ActiveRecord &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Using the around_save callback in ActiveRecord models for further processing">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="activerecord, rails, ruby">
+    <link rel="canonical" href="https://cheeyeo.uk/rails/ruby/activerecord/2015/12/13/around-callbacks-in-activerecord/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Using around_save callbacks in ActiveRecord">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/rails/ruby/activerecord/2015/12/13/around-callbacks-in-activerecord/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Using around_save callbacks in ActiveRecord</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">December 13, 2015</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/activerecord">activerecord</a>
+      </li>
+      
+      <li>
+        <a href="/categories/rails">rails</a>
+      </li>
+      
+      <li>
+        <a href="/categories/ruby">ruby</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>It is fairly common to see ‘before’ and ‘after’ callbacks in Rails models to handle instructions for the model to execute prior to and after its state has changed.</p>
+
+<p>However, there might be a need to execute some custom actions in the middle of this callback flow and you might not have control over the callback to make the changes as this might be from say an Engine or a gem.</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">B</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+<span class="lineno"> 2</span>   <span class="n">has_many</span> <span class="ss">:c</span>
+<span class="lineno"> 3</span>   <span class="n">belongs_to</span> <span class="ss">:a</span>
+<span class="lineno"> 4</span> <span class="k">end</span>
+<span class="lineno"> 5</span> 
+<span class="lineno"> 6</span> <span class="k">class</span> <span class="nc">C</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+<span class="lineno"> 7</span>   <span class="n">belongs_to</span> <span class="ss">:b</span>
+<span class="lineno"> 8</span> <span class="k">end</span>
+<span class="lineno"> 9</span> 
+<span class="lineno">10</span> 
+<span class="lineno">11</span> <span class="c1"># this module could be from a gem or engine</span>
+<span class="lineno">12</span> <span class="k">module</span> <span class="nn">Audit</span>
+<span class="lineno">13</span>   <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">included</span><span class="p">(</span><span class="n">klass</span><span class="p">)</span>
+<span class="lineno">14</span>     <span class="n">klass</span><span class="o">.</span><span class="n">extend</span> <span class="no">ClassMethods</span>
+<span class="lineno">15</span>   <span class="k">end</span>
+<span class="lineno">16</span> 
+<span class="lineno">17</span>   <span class="k">module</span> <span class="nn">ClassMethods</span>
+<span class="lineno">18</span>     <span class="n">has_many</span> <span class="ss">:b</span>
+<span class="lineno">19</span> 
+<span class="lineno">20</span>     <span class="n">after_save</span> <span class="ss">:create_b</span>
+<span class="lineno">21</span> 
+<span class="lineno">22</span>     <span class="k">def</span> <span class="nf">create_b</span>
+<span class="lineno">23</span>       <span class="c1"># saves a record of type B</span>
+<span class="lineno">24</span>     <span class="k">end</span>
+<span class="lineno">25</span>   <span class="k">end</span>
+<span class="lineno">26</span> <span class="k">end</span>
+<span class="lineno">27</span> 
+<span class="lineno">28</span> <span class="k">class</span> <span class="nc">A</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+<span class="lineno">29</span>   <span class="kp">include</span> <span class="no">Audit</span>
+<span class="lineno">30</span> 
+<span class="lineno">31</span>   <span class="c1"># how do we create C which has a reference to B ??</span>
+<span class="lineno">32</span> <span class="k">end</span></code></pre></div>
+
+<p>Take the example above. We have an ActiveRecord model A, whereby after saving it, it creates a record in the database of type B.</p>
+
+<p>The callback is included into A from an Audit module which is external to the application.</p>
+
+<p>How do we trigger a create on C but after the first callback so that we can obtain a reference to B?</p>
+
+<p>The approach I have taken is to use an around_save. I can yield to the main class callback, in this case, creating B, and then execute my custom action to create C afterwards.</p>
+
+<p>The following ruby code demonstrates the idea:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="k">def</span> <span class="nf">test_yield</span>
+<span class="lineno">2</span>   <span class="nb">puts</span> <span class="s2">&quot;Hello World!&quot;</span>
+<span class="lineno">3</span>   <span class="k">yield</span>
+<span class="lineno">4</span>   <span class="nb">puts</span> <span class="s2">&quot;Goodbye World!&quot;</span>
+<span class="lineno">5</span> <span class="k">end</span>
+<span class="lineno">6</span> 
+<span class="lineno">7</span> <span class="n">test_yield</span><span class="p">{</span> <span class="nb">puts</span> <span class="s2">&quot;Custom processing here...&quot;</span> <span class="p">}</span> <span class="c1"># =&gt; Hello World!; Custom processing here...; Goodbye World!</span></code></pre></div>
+
+<p>The test_yield method calls the block when it reaches yield and passes control to the code inside the block. Once thats done, control returns to the end of the original method.</p>
+
+<p>I can use an around_save callback which calls yield on the main class to run its callbacks and then have it run my custom code after:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">A</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+<span class="lineno"> 2</span>   <span class="kp">include</span> <span class="no">Audit</span>
+<span class="lineno"> 3</span> 
+<span class="lineno"> 4</span>   <span class="n">around_save</span> <span class="ss">:create_c</span>
+<span class="lineno"> 5</span> 
+<span class="lineno"> 6</span>   <span class="k">def</span> <span class="nf">create_c</span>
+<span class="lineno"> 7</span>     <span class="c1"># calls the after_save defined in Audit module first</span>
+<span class="lineno"> 8</span>     <span class="k">yield</span>
+<span class="lineno"> 9</span> 
+<span class="lineno">10</span>     <span class="c1"># custom call to create C</span>
+<span class="lineno">11</span>     <span class="n">C</span><span class="o">.</span><span class="n">create!</span><span class="p">(</span><span class="ss">b</span><span class="p">:</span> <span class="vi">@b</span><span class="p">)</span>
+<span class="lineno">12</span>   <span class="k">end</span>
+<span class="lineno">13</span> <span class="k">end</span></code></pre></div>
+
+<p>Happy Hacking!</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

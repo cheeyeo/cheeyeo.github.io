@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>ETags and http caching in Rails 5 &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="ETags and http caching in Rails 5">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="cache, http, rails5, ruby">
+    <link rel="canonical" href="https://cheeyeo.uk/ruby/rails5/cache/http/2016/08/09/etags-rails5/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="ETags and http caching in Rails 5">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/ruby/rails5/cache/http/2016/08/09/etags-rails5/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">ETags and http caching in Rails 5</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">August 9, 2016</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/cache">cache</a>
+      </li>
+      
+      <li>
+        <a href="/categories/http">http</a>
+      </li>
+      
+      <li>
+        <a href="/categories/rails5">rails5</a>
+      </li>
+      
+      <li>
+        <a href="/categories/ruby">ruby</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>Rails 5 has introduced some changes to the way HTTP caching works.</p>
+
+<p>ETags are by default now set to <code>weak</code> mode in Rails 5. This is because Rails does not do byte-to-byte checking for equality which is comparing changes in both the headers and response body.</p>
+
+<p>Weak Etags only compares the response body for differences, which is also the default behaviour in earlier versions of Rails.</p>
+
+<p>Assuming we have a Users controller and an expensive rendering action on the index action which we want to call render only if the users have been updated.</p>
+
+<p>We can implement a conditional get using <code>stale?</code> like so:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="k">if</span> <span class="n">stale?</span><span class="p">(</span><span class="ss">etag</span><span class="p">:</span> <span class="vi">@users</span><span class="p">,</span> <span class="ss">last_modified</span><span class="p">:</span> <span class="vi">@users</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="ss">:updated_at</span><span class="p">)</span>
+<span class="lineno">2</span>   <span class="n">respond_to</span> <span class="k">do</span> <span class="o">|</span><span class="nb">format</span><span class="o">|</span>
+<span class="lineno">3</span>     <span class="nb">format</span><span class="o">.</span><span class="n">html</span>
+<span class="lineno">4</span>   <span class="k">end</span>
+<span class="lineno">5</span> <span class="k">end</span></code></pre></div>
+
+<p>Assuming we made a curl request to the endpoint /users:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> curl -i http://localhost:3000/users</code></pre></div>
+
+<p>It will return a 200 response:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> HTTP/1.1 <span class="m">200</span> OK
+<span class="lineno">2</span> X-Frame-Options: SAMEORIGIN
+<span class="lineno">3</span> X-XSS-Protection: 1<span class="p">;</span> <span class="nv">mode</span><span class="o">=</span>block
+<span class="lineno">4</span> X-Content-Type-Options: nosniff
+<span class="lineno">5</span> ETag: W/<span class="s2">&quot;8e49d1a448037c58d93ea3a00d6edf87&quot;</span></code></pre></div>
+
+<p>Note that the ETag now has a <code>W/</code> prefix to indicate its a weak etag, which is the default in Rails 5.</p>
+
+<p>If we now use the ETag value and make a second curl request with the header <code>If-None-Match</code> set to the same ETag value we should get a 304 response.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> curl -i -H <span class="s1">&#39;If-None-Match: &quot;8e49d1a448037c58d93ea3a00d6edf87&quot;&#39;</span> http://localhost:3000/users</code></pre></div>
+
+<p>However, the above will keep returning 200 as it is not matching the response. You need to specify the entire ETag value like so:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> curl -i -H <span class="s1">&#39;If-None-Match: W/&quot;8e49d1a448037c58d93ea3a00d6edf87&quot;&#39;</span> http://localhost:3000/users</code></pre></div>
+
+<p>To use strong etags (without the W/ prefix), you can change the <code>etag</code> parameter in the <code>stale?</code> method:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="k">if</span> <span class="n">stale?</span><span class="p">(</span><span class="ss">strong_etag</span><span class="p">:</span> <span class="vi">@users</span><span class="p">,</span> <span class="ss">last_modified</span><span class="p">:</span> <span class="vi">@users</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="ss">:updated_at</span><span class="p">))</span>
+<span class="lineno">2</span>   <span class="n">respond_to</span> <span class="k">do</span> <span class="o">|</span><span class="nb">format</span><span class="o">|</span>
+<span class="lineno">3</span>     <span class="nb">format</span><span class="o">.</span><span class="n">html</span>
+<span class="lineno">4</span>   <span class="k">end</span>
+<span class="lineno">5</span> <span class="k">end</span></code></pre></div>
+
+<p>Stay curious and keep hacking!</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

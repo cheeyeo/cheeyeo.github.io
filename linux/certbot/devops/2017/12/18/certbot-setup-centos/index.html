@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Certbot setup on CentOS 7 &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Self-help sanity guide on setting up certbot on centos7">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="certbot, devops, linux">
+    <link rel="canonical" href="https://cheeyeo.uk/linux/certbot/devops/2017/12/18/certbot-setup-centos/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Certbot setup on CentOS 7">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/linux/certbot/devops/2017/12/18/certbot-setup-centos/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Certbot setup on CentOS 7</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">December 18, 2017</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/certbot">certbot</a>
+      </li>
+      
+      <li>
+        <a href="/categories/devops">devops</a>
+      </li>
+      
+      <li>
+        <a href="/categories/linux">linux</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>In order to learn more about devops, I took it upon myself a year ago to automate the process of setting up and publishing this <strong>Jekyll</strong> blog to a cloud service. One of the things I wanted to achieve was to learn how to automate the process of generating SSL certificates using <strong>certbot</strong>.</p>
+
+<p>It didn’t dawn on me till much later that the whole idea of using <strong>certbot</strong> is to automate the renewal process, which is when I got stuck.</p>
+
+<p>If you follow the instructions on <a href="https://certbot.eff.org/#centosrhel7-nginx" target="_blank">the certbot website</a>, it would install an older version of <strong>pyOpenSSL</strong> using <strong>yum</strong> through the <strong>epel-release</strong> repo, which causes conflict errors such as <strong>‘Import OpenSSL not found’</strong> when the certbot binary is run. In addition, the python version is locked at 2.7.5 which is not updatable.</p>
+
+<p>I realised that if I could install and run an up-to-date version of python, I could perhaps be able to install and run certbot through pip. After some research, I decided to install the latest version of python 2 which would work alongside the system version.</p>
+
+<h2 id="installing-python">Installing python</h2>
+
+<p>Below are the commands I ran to install python 2.7.14</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno"> 1</span> <span class="gp">#</span> Only <span class="k">if</span> you have installed certbot through yum previously
+<span class="lineno"> 2</span> <span class="go">yum remove pyOpenSSL</span>
+<span class="lineno"> 3</span> 
+<span class="lineno"> 4</span> <span class="gp">#</span> Needed later to build certbot
+<span class="lineno"> 5</span> <span class="go">yum install openssl-devel python-devel</span>
+<span class="lineno"> 6</span> 
+<span class="lineno"> 7</span> <span class="go">yum update</span>
+<span class="lineno"> 8</span> 
+<span class="lineno"> 9</span> <span class="go">yum groupinstall -y &quot;development tools&quot;</span>
+<span class="lineno">10</span> 
+<span class="lineno">11</span> <span class="gp">#</span> dependencies <span class="k">for</span> building python
+<span class="lineno">12</span> <span class="go">yum install -y zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel expat-devel</span>
+<span class="lineno">13</span> 
+<span class="lineno">14</span> <span class="go">wget  http://python.org/ftp/python/2.7.14/Python-2.7.14.tar.xz</span>
+<span class="lineno">15</span> 
+<span class="lineno">16</span> <span class="go">tar xf Python-2.7.14.tar.xz</span>
+<span class="lineno">17</span> 
+<span class="lineno">18</span> <span class="go">cd Python-2.7.14</span>
+<span class="lineno">19</span> 
+<span class="lineno">20</span> <span class="go">./configure --prefix=/usr/local --enable-unicode=ucs4 --enable-shared LDFLAGS=&quot;-Wl,-rpath /usr/local/lib&quot;</span>
+<span class="lineno">21</span> 
+<span class="lineno">22</span> <span class="gp">#</span> Using make altinstall here so we don<span class="err">&#39;</span>t override the system python
+<span class="lineno">23</span> <span class="go">make &amp;&amp; make altinstall</span></code></pre></div>
+
+<p>If successful, you should get /usr/local/bin/python2.7. The next step would be to install pip:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">wget https://bootstrap.pypa.io/get-pip.py</span>
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="go">python2.7 get-pip.py</span></code></pre></div>
+
+<p>The above should install pip2.7.</p>
+
+<h2 id="virtualenv-setup">Virtualenv setup</h2>
+
+<p>The next step would be to setup virtualenv so we can use python2.7.14 in its own isolated environment without any conflicts with the system python. Then we can install and build cerbot:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno"> 1</span> <span class="go">pip2.7 install virtualenv</span>
+<span class="lineno"> 2</span> 
+<span class="lineno"> 3</span> <span class="gp">#</span> create a virtualenv in your home directory called mycertbot
+<span class="lineno"> 4</span> <span class="go">virtualenv mycertbot</span>
+<span class="lineno"> 5</span> 
+<span class="lineno"> 6</span> <span class="gp">#</span> activate the virtualenv
+<span class="lineno"> 7</span> <span class="go">source ~/mycerbot/bin/activate</span>
+<span class="lineno"> 8</span> 
+<span class="lineno"> 9</span> <span class="gp">#</span> should show 2.7.14
+<span class="lineno">10</span> <span class="go">python --version</span>
+<span class="lineno">11</span> 
+<span class="lineno">12</span> <span class="go">pip install cerbot</span></code></pre></div>
+
+<p>If successful, the certbot binary should be within <code>~/mycertbot/bin/cerbot</code></p>
+
+<p>To test that it works, you can do a <strong>dry-run</strong> using certbot:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">sudo ~/mycertbot/bin/certbot certonly --dry-run --webroot -w /home/web/site/.well-known/acme-challenge -d mydomain.com -d www.mydomain.com</span></code></pre></div>
+
+<p>From above, I’m using the <strong>certonly</strong> command to generate the certs for each of the domains listed. I’m also using the <strong>webroot</strong> authenticator.</p>
+
+<p>This means that I only need to supply a directory where <strong>cerbot</strong> can have access to for storing its acme challenge tokens. In this mode, Certbot does not update or modify the server config files. You would have to do so manually.</p>
+
+<p>Certbot has support for various plugins including nginx and apache. However, I am unable to get it to work properly during the renewal process. I will document the renewal process in the follow up article.</p>
+
+<p>To generate the certificates for the first time, run the command above without the dry-run flag:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">sudo ~/mycertbot/bin/certbot certonly --webroot -w /home/web/site/.well-known/acme-challenge -d mydomain.com -d www.mydomain.com</span></code></pre></div>
+
+<p>After a successful run, the certificates should be within <code>/etc/letsencrypt/live/mydomain.com</code>.</p>
+
+<p>That’s my approach for solving the python dependencies errors when install certbot on centos7.</p>
+
+<p>Hope it helps someone. Happy Hacking!</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Types of Autoencoders Part 1 &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Introduction to types of Autoencoders">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="autoencoders, deep-learning, machine-learning, tensorflow">
+    <link rel="canonical" href="https://cheeyeo.uk/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/23/types-of-autoencoders-part1/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Types of Autoencoders Part 1">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/23/types-of-autoencoders-part1/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Types of Autoencoders Part 1</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">March 23, 2020</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/autoencoders">autoencoders</a>
+      </li>
+      
+      <li>
+        <a href="/categories/deep-learning">deep-learning</a>
+      </li>
+      
+      <li>
+        <a href="/categories/machine-learning">machine-learning</a>
+      </li>
+      
+      <li>
+        <a href="/categories/tensorflow">tensorflow</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>In this post, I will be discussing two commonly used types of Autoencoders: <code>Undercomplete, and Overcomplete</code>.</p>
+
+<p>Autoencoders are a form of unsupervised neural network trained to map input to output. Its hidden layers learn an approximation of the original input, known as the latent space.</p>
+
+<p>Autoencoders perform a form of feature extraction. Each layer in network learns a representation of the original features and deeper layers built upon these representations learnt by the lower layers, learning more complex representations from simpler ones. Output of autoencoder is newly learned representation of original features.</p>
+
+<p>For instance, <a href="https://cheeyeo.uk/machine-learning/deep-learning/autoencoders/anomaly-detection/2020/03/08/autoencoders-anomaly-detection/" target="_blank">in a previous blog post</a> on anomaly detection, the autoencoder trained on the input dataset of forest images is able to output features captured within the imagery, such as shades of green and brown hues to represent trees but was unable to fully reconstruct the input image verbatim. This is by design. If it were to return the images verbatim, it would have learnt the identity function(input) and not features inherent in the input.</p>
+
+<p>An Autoencoder comprises of encoder and decoder. The encoder takes original input and outputs a different representation. The decoder takes the different representation learnt by encoder and converts it to original format.</p>
+
+<p>If we represent encoder function as <code>h = f(x)</code> and decoder function as <code>r = g(h)</code>, where h represents the latent space, r represents the reconstructed input, then an autoencoder tries to learn <code>g(f(x))</code> for all x as input.</p>
+
+<p>The loss function an Autoencoder is minimizing will be:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno">1</span> <span class="n">L</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span></code></pre></div>
+
+<p>This is usually set to mean squared loss/error.</p>
+
+<p>If the decoder is linear and L, loss function is the mean squared error, then the autoencoder behaves like PCA, meaning it has learnt the principal subspace of the training data</p>
+
+<p>Autoencoders with non-linear encoder and decoders can learn more powerful representations of the training data but if they are given too much capacity, it will overfit and unable to learn any useful features from the training data.</p>
+
+<p>Note that we are not trying to learn or copy the identity function (input); meaning if an autoencoder learns g(f(x)) = x all the time, it’s useless.</p>
+
+<p>To prevent Autoencoders from copying the input data perfectly, we place/impose restrictions on its design. These restrictions prevent them from only learning the identity function and forces it to capture more salient features/properties of the data.</p>
+
+<p>A common restriction would be to restrict the latent space dimension <code>h</code>, to be much smaller than the input feature size. This is the most common type of Autoencoder and is known as an <code>Undercomplete Autoencoder</code>.</p>
+
+<p>For instance, if the input size is 28, the latent space could be 16.</p>
+
+<p>Since Autoencoders are still neural networks, we can use pre-existing layers in tensorflow to construct them.</p>
+
+<p>The example below shows an undercomplete autoencoder which takes in a random sample of floats with <code>32 dimensions</code>, but the hidden/latent space is constrained to be of only <code>24 nodes</code>.</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno"> 1</span> <span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Dense</span>
+<span class="lineno"> 2</span> <span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Activation</span>
+<span class="lineno"> 3</span> <span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Input</span>
+<span class="lineno"> 4</span> <span class="kn">from</span> <span class="nn">tensorflow.keras.optimizers</span> <span class="kn">import</span> <span class="n">SGD</span>
+<span class="lineno"> 5</span> <span class="kn">from</span> <span class="nn">tensorflow.keras.models</span> <span class="kn">import</span> <span class="n">Model</span>
+<span class="lineno"> 6</span> <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="lineno"> 7</span> 
+<span class="lineno"> 8</span> <span class="n">latent_dim</span> <span class="o">=</span> <span class="mi">24</span>
+<span class="lineno"> 9</span> 
+<span class="lineno">10</span> <span class="n">inputs</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">32</span><span class="p">,))</span>
+<span class="lineno">11</span> <span class="n">x</span> <span class="o">=</span> <span class="n">inputs</span>
+<span class="lineno">12</span> <span class="n">x</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">13</span> <span class="n">x</span> <span class="o">=</span> <span class="n">Activation</span><span class="p">(</span><span class="s">&quot;relu&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">14</span> 
+<span class="lineno">15</span> <span class="c"># Encoder model</span>
+<span class="lineno">16</span> <span class="n">encoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;encoder&quot;</span><span class="p">)</span>
+<span class="lineno">17</span> <span class="n">encoder</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+<span class="lineno">18</span> 
+<span class="lineno">19</span> <span class="c"># Decoder model</span>
+<span class="lineno">20</span> <span class="n">latent_inputs</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">,))</span>
+<span class="lineno">21</span> <span class="n">x</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="mi">32</span><span class="p">)(</span><span class="n">latent_inputs</span><span class="p">)</span>
+<span class="lineno">22</span> <span class="n">outputs</span> <span class="o">=</span> <span class="n">Activation</span><span class="p">(</span><span class="s">&quot;sigmoid&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">23</span> <span class="n">decoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">latent_inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;decoder&quot;</span><span class="p">)</span>
+<span class="lineno">24</span> <span class="n">decoder</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+<span class="lineno">25</span> 
+<span class="lineno">26</span> <span class="n">autoencoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">decoder</span><span class="p">(</span><span class="n">encoder</span><span class="p">(</span><span class="n">inputs</span><span class="p">)),</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;autoencoder&quot;</span><span class="p">)</span>
+<span class="lineno">27</span> 
+<span class="lineno">28</span> <span class="n">autoencoder</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="s">&quot;mse&quot;</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="n">SGD</span><span class="p">(</span><span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.99</span><span class="p">),</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;accuracy&quot;</span><span class="p">])</span>
+<span class="lineno">29</span> <span class="n">autoencoder</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+<span class="lineno">30</span> 
+<span class="lineno">31</span> <span class="c"># Create fake training data of 5000 x 32 samples...</span>
+<span class="lineno">32</span> <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+<span class="lineno">33</span> <span class="n">trainX</span><span class="p">,</span> <span class="n">testX</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<span class="lineno">34</span> 
+<span class="lineno">35</span> <span class="c"># Create fake training data of 5000 x 32 samples...</span>
+<span class="lineno">36</span> <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+<span class="lineno">37</span> <span class="n">trainX</span><span class="p">,</span> <span class="n">testX</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<span class="lineno">38</span> 
+<span class="lineno">39</span> <span class="n">H</span> <span class="o">=</span> <span class="n">autoencoder</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">trainX</span><span class="p">,</span> <span class="n">trainX</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="p">(</span><span class="n">testX</span><span class="p">,</span> <span class="n">testX</span><span class="p">),</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code></pre></div>
+
+<p>Plots of the above model architecture is shown below:</p>
+
+<h4 id="undercomplete-autoencoder">Undercomplete Autoencoder</h4>
+<p><img src="/assets/img/autoencoders/simple_autoencoder.png" alt="Undercomplete Autoencoder" /></p>
+
+<h4 id="encoder">Encoder</h4>
+<p><img src="/assets/img/autoencoders/simple_encoder.png" alt="Undercomplete Encoder" /></p>
+
+<h4 id="decoder">Decoder</h4>
+<p><img src="/assets/img/autoencoders/simple_decoder.png" alt="Undercomplete Decoder" /></p>
+
+<p>Overcomplete Autoencoders are the reverse of undercomplete. They have a larger latent space compared to the input. </p>
+
+<p>For example, we could double the latent space variable in the above example to be 48 nodes, which would make it overcomplete since the hidden dimension is greater than 32.</p>
+
+<p>Doing so may result in the overcomplete autoencoder just copying the training data and not learning anything useful but training could be improved/controlled using regularization techniques to prevent overfitting.</p>
+
+<p>In this post, I aim to introduce what an autoencoder is and the two commonly used types: undercomplete, overcomplete. I provided an example implementation using the tensorflow Keras functional API.</p>
+
+<p>In future posts, I hope to discuss more autoencoder types.</p>
+
+<p>Happy Hacking.</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

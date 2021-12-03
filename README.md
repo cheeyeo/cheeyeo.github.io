@@ -1,3 +1,3 @@
 ### CHEEYEO.UK
 
-Cheeyeo.uk static website 
+www.cheeyeo.uk website 

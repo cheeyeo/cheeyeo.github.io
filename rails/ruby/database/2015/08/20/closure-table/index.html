@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Closure Table pattern for nested hierarchical data &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Using the Closure Table pattern for nested hierarchical data">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="database, rails, ruby">
+    <link rel="canonical" href="https://cheeyeo.uk/rails/ruby/database/2015/08/20/closure-table/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Closure Table pattern for nested hierarchical data">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/rails/ruby/database/2015/08/20/closure-table/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Closure Table pattern for nested hierarchical data</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">August 20, 2015</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/database">database</a>
+      </li>
+      
+      <li>
+        <a href="/categories/rails">rails</a>
+      </li>
+      
+      <li>
+        <a href="/categories/ruby">ruby</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>Sometimes in web applications there is a need to store a hierarchical data structure in the database. A good example would be a comment list or thread. Since each comment can accept replies and in turn, the replies themselves can also accept further replies, this leads to a need to maintain a tree data structure to represent the comments when persisted.</p>
+
+<p>Normally, we could just use a <strong>parent_id</strong> column in the Comments table, such as an Adjacent List, to keep track of its parents and descendants. However this approach presents several problems:</p>
+
+<ul>
+  <li>
+    <p>You can only query up to two levels in the hierarchy since there is a direct relationship between the parent and child.</p>
+  </li>
+  <li>
+    <p>You need to add MORE JOIN statements in order to query further into the hierarchy.</p>
+  </li>
+  <li>
+    <p>The application would need to fetch all the rows from the database into the application before it can rebuild the hierarchy, slowing the application down by consuming more memory.</p>
+  </li>
+  <li>
+    <p>Maintaining referential integrity is difficult as moving or deleting records involve series of steps to accomplish.</p>
+  </li>
+</ul>
+
+<p>An alternative approach would be to use the Closure Table pattern. It stores all the metadata about the hierarchy i.e. parent-child relationship and depth in a separate table, providing a clean separation of concerns from the main data table.</p>
+
+<p>Hence it is possible to store hierarchies of indefinite depth using this approach.</p>
+
+<p>Lets look at the previous example of having a comment list in the context of a Rails application.</p>
+
+<p>We could create a separate table called <strong>comment_hierarchy</strong>, to store the parent child relationship and depth. This would include the following migration:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">CreateCommentHierarchies</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+<span class="lineno"> 2</span>   <span class="k">def</span> <span class="nf">change</span>
+<span class="lineno"> 3</span>     <span class="n">create_table</span> <span class="ss">:comment_hierarchies</span><span class="p">,</span> <span class="nb">id</span><span class="p">:</span> <span class="kp">false</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
+<span class="lineno"> 4</span>       <span class="n">t</span><span class="o">.</span><span class="n">integer</span> <span class="ss">:ancestor_id</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+<span class="lineno"> 5</span>       <span class="n">t</span><span class="o">.</span><span class="n">integer</span> <span class="ss">:descendant_id</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+<span class="lineno"> 6</span>       <span class="n">t</span><span class="o">.</span><span class="n">integer</span> <span class="ss">:generations</span><span class="p">,</span> <span class="ss">null</span><span class="p">:</span> <span class="kp">false</span>
+<span class="lineno"> 7</span>     <span class="k">end</span>
+<span class="lineno"> 8</span> 
+<span class="lineno"> 9</span>     <span class="n">add_index</span> <span class="ss">:comment_hierarchies</span><span class="p">,</span> <span class="o">[</span><span class="ss">:ancestor_id</span><span class="p">,</span> <span class="ss">:descendant_id</span><span class="p">,</span> <span class="ss">:generations</span><span class="o">]</span><span class="p">,</span>
+<span class="lineno">10</span>       <span class="ss">unique</span><span class="p">:</span> <span class="kp">true</span><span class="p">,</span>
+<span class="lineno">11</span>       <span class="nb">name</span><span class="p">:</span> <span class="s2">&quot;comment_anc_desc_idx&quot;</span>
+<span class="lineno">12</span> 
+<span class="lineno">13</span>     <span class="n">add_index</span> <span class="ss">:comment_hierarchies</span><span class="p">,</span> <span class="o">[</span><span class="ss">:descendant_id</span><span class="o">]</span><span class="p">,</span>
+<span class="lineno">14</span>       <span class="nb">name</span><span class="p">:</span> <span class="s2">&quot;comment_desc_idx&quot;</span>
+<span class="lineno">15</span>   <span class="k">end</span>
+<span class="lineno">16</span> <span class="k">end</span></code></pre></div>
+
+<p>The <strong>ancestor_id</strong> column would point to the parent comment; the <strong>descendant_id</strong> to the child; and <strong>generations</strong> refer to the depth of the tree.</p>
+
+<p>For instance, a single comment without any children would be represented as:</p>
+
+<div class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="lineno">1</span> <span class="o">+</span><span class="c1">-------------+---------------+-------------+</span>
+<span class="lineno">2</span> <span class="o">|</span> <span class="n">ancestor_id</span> <span class="o">|</span> <span class="n">descendant_id</span> <span class="o">|</span> <span class="n">generations</span> <span class="o">|</span>
+<span class="lineno">3</span> <span class="o">+</span><span class="c1">-------------+---------------+-------------+</span>
+<span class="lineno">4</span> <span class="o">|</span>           <span class="mi">1</span> <span class="o">|</span>             <span class="mi">1</span> <span class="o">|</span>           <span class="mi">0</span> <span class="o">|</span>
+<span class="lineno">5</span> <span class="o">+</span><span class="c1">-------------+---------------+-------------+</span></code></pre></div>
+
+<p>The same comment with a single child would be represented as:</p>
+
+<div class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="lineno">1</span> <span class="o">+</span><span class="c1">-------------+---------------+-------------+</span>
+<span class="lineno">2</span> <span class="o">|</span> <span class="n">ancestor_id</span> <span class="o">|</span> <span class="n">descendant_id</span> <span class="o">|</span> <span class="n">generations</span> <span class="o">|</span>
+<span class="lineno">3</span> <span class="o">+</span><span class="c1">-------------+---------------+-------------+</span>
+<span class="lineno">4</span> <span class="o">|</span>           <span class="mi">1</span> <span class="o">|</span>             <span class="mi">1</span> <span class="o">|</span>           <span class="mi">0</span> <span class="o">|</span>
+<span class="lineno">5</span> <span class="o">|</span>           <span class="mi">1</span> <span class="o">|</span>             <span class="mi">2</span> <span class="o">|</span>           <span class="mi">1</span> <span class="o">|</span>
+<span class="lineno">6</span> <span class="o">|</span>           <span class="mi">2</span> <span class="o">|</span>             <span class="mi">2</span> <span class="o">|</span>           <span class="mi">0</span> <span class="o">|</span>
+<span class="lineno">7</span> <span class="o">+</span><span class="c1">-------------+---------------+-------------+</span></code></pre></div>
+
+<p>Here, [2,2,0] represents the new comment #2 and [1,2,1] represents the relationship: parent of comment #2 is comment #1 and it is at a depth of 1 (direct child of comment #1)</p>
+
+<p>To find the descendants of comment #1:</p>
+
+<div class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="lineno">1</span> <span class="k">SELECT</span> <span class="k">c</span><span class="p">.</span><span class="n">comment_id</span> <span class="k">from</span> <span class="n">comments</span> <span class="k">as</span> <span class="k">c</span> <span class="k">JOIN</span> <span class="n">comment_hierarchies</span> <span class="k">as</span> <span class="n">t</span> <span class="k">on</span> <span class="k">c</span><span class="p">.</span><span class="n">comment_id</span> <span class="o">=</span> <span class="n">t</span><span class="p">.</span><span class="n">descendant_id</span> <span class="k">where</span> <span class="n">t</span><span class="p">.</span><span class="n">ancestor_id</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span></code></pre></div>
+
+<p>To find the ancestors of comment #1:</p>
+
+<div class="highlight"><pre><code class="language-sql" data-lang="sql"><span class="lineno">1</span> <span class="k">SELECT</span> <span class="k">c</span><span class="p">.</span><span class="n">comment_id</span> <span class="k">from</span> <span class="n">comments</span> <span class="k">as</span> <span class="k">c</span> <span class="k">JOIN</span> <span class="n">comment_hierarchies</span> <span class="k">as</span> <span class="n">t</span> <span class="k">on</span> <span class="k">c</span><span class="p">.</span><span class="n">comment_id</span> <span class="o">=</span> <span class="n">t</span><span class="p">.</span><span class="n">descendant_id</span> <span class="k">where</span> <span class="n">t</span><span class="p">.</span><span class="n">ancestor_id</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span></code></pre></div>
+
+<p>Normally, we want to display the complete comment list on a webpage. This involves fetching the data and reconstructing the tree. We can use a single query to do so:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">Comment</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+<span class="lineno"> 2</span>   <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="lineno"> 3</span>   <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="lineno"> 4</span>     <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">hash_tree</span>
+<span class="lineno"> 5</span>       <span class="n">generation_sql</span> <span class="o">=</span> <span class="o">&lt;&lt;-</span><span class="no">SQL</span><span class="o">.</span><span class="n">strip_heredoc</span>
+<span class="lineno"> 6</span> <span class="sh">        INNER JOIN(</span>
+<span class="lineno"> 7</span> <span class="sh">          SELECT descendant_id, MAX(generations) as depth</span>
+<span class="lineno"> 8</span> <span class="sh">          FROM comment_hierarchies</span>
+<span class="lineno"> 9</span> <span class="sh">          GROUP BY descendant_id</span>
+<span class="lineno">10</span> <span class="sh">        ) AS generation_depth</span>
+<span class="lineno">11</span> <span class="sh">        ON comments.comment_id = generation_depth.descendant_id</span>
+<span class="lineno">12</span> <span class="no">      SQL</span>
+<span class="lineno">13</span> 
+<span class="lineno">14</span>       <span class="n">tree_scope</span> <span class="o">=</span> <span class="no">Comment</span><span class="o">.</span><span class="n">joins</span><span class="p">(</span><span class="n">generation_sql</span><span class="p">)</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="s2">&quot;generation_depth.depth, created_at DESC&quot;</span><span class="p">)</span>
+<span class="lineno">15</span> 
+<span class="lineno">16</span>       <span class="nb">self</span><span class="o">.</span><span class="n">build_hash_tree</span><span class="p">(</span><span class="n">tree_scope</span><span class="p">)</span>
+<span class="lineno">17</span>     <span class="k">end</span>
+<span class="lineno">18</span> 
+<span class="lineno">19</span>     <span class="o">.</span><span class="n">.</span><span class="o">.</span><span class="n">.</span>
+<span class="lineno">20</span>   <span class="k">end</span></code></pre></div>
+
+<p>The query above fetches all the descendant_id and its depth from comment_hierarchies table through an inner select, which is then joined with the main comments table through the descendant_id. This data is then used to construct a hash table of comments as keys and its descendants as arrays of values:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">Comment</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+<span class="lineno"> 2</span>     <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="lineno"> 3</span> 
+<span class="lineno"> 4</span>     <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">build_hash_tree</span><span class="p">(</span><span class="n">tree_scope</span><span class="p">)</span>
+<span class="lineno"> 5</span>       <span class="n">tree</span> <span class="o">=</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">OrderedHash</span><span class="o">.</span><span class="n">new</span>
+<span class="lineno"> 6</span>       <span class="n">id_to_hash</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="lineno"> 7</span> 
+<span class="lineno"> 8</span>       <span class="n">tree_scope</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">ea</span><span class="o">|</span>
+<span class="lineno"> 9</span>         <span class="n">h</span> <span class="o">=</span> <span class="n">id_to_hash</span><span class="o">[</span><span class="n">ea</span><span class="o">.</span><span class="n">id</span><span class="o">]</span> <span class="o">=</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">OrderedHash</span><span class="o">.</span><span class="n">new</span>
+<span class="lineno">10</span>         <span class="k">if</span> <span class="n">ea</span><span class="o">.</span><span class="n">root?</span> <span class="o">||</span> <span class="n">tree</span><span class="o">.</span><span class="n">empty?</span> <span class="c1"># We&#39;re at the top of the tree.</span>
+<span class="lineno">11</span>           <span class="n">tree</span><span class="o">[</span><span class="n">ea</span><span class="o">]</span> <span class="o">=</span> <span class="n">h</span>
+<span class="lineno">12</span>         <span class="k">else</span>
+<span class="lineno">13</span>           <span class="n">id_to_hash</span><span class="o">[</span><span class="n">ea</span><span class="o">.</span><span class="n">parent_id</span><span class="o">][</span><span class="n">ea</span><span class="o">]</span> <span class="o">=</span> <span class="n">h</span>
+<span class="lineno">14</span>         <span class="k">end</span>
+<span class="lineno">15</span>       <span class="k">end</span>
+<span class="lineno">16</span> 
+<span class="lineno">17</span>       <span class="n">tree</span>
+<span class="lineno">18</span>     <span class="k">end</span>
+<span class="lineno">19</span> 
+<span class="lineno">20</span>     <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="lineno">21</span>   <span class="k">end</span></code></pre></div>
+
+<p>We can render the comments hash using a recursive helper to check for the presence of nested comments:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">module</span> <span class="nn">ApplicationHelper</span>
+<span class="lineno"> 2</span>     <span class="k">def</span> <span class="nf">comments_tree_for</span><span class="p">(</span><span class="n">comments</span><span class="p">)</span>
+<span class="lineno"> 3</span>       <span class="n">comments</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">comment</span><span class="p">,</span> <span class="n">nested_comments</span><span class="o">|</span>
+<span class="lineno"> 4</span>         <span class="n">render</span><span class="p">(</span><span class="n">comment</span><span class="p">)</span> <span class="o">+</span>
+<span class="lineno"> 5</span>             <span class="p">(</span><span class="n">nested_comments</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">content_tag</span><span class="p">(</span><span class="ss">:div</span><span class="p">,</span> <span class="n">comments_tree_for</span><span class="p">(</span><span class="n">nested_comments</span><span class="p">),</span> <span class="ss">class</span><span class="p">:</span> <span class="s2">&quot;replies&quot;</span><span class="p">)</span> <span class="p">:</span> <span class="kp">nil</span><span class="p">)</span>
+<span class="lineno"> 6</span>       <span class="k">end</span><span class="o">.</span><span class="n">join</span><span class="o">.</span><span class="n">html_safe</span>
+<span class="lineno"> 7</span>     <span class="k">end</span>
+<span class="lineno"> 8</span>   <span class="k">end</span>
+<span class="lineno"> 9</span> 
+<span class="lineno">10</span>   <span class="c1"># within the view</span>
+<span class="lineno">11</span> 
+<span class="lineno">12</span>   <span class="o">&lt;%=</span> <span class="n">comments_tree_for</span> <span class="vi">@comments</span> <span class="o">%&gt;</span></code></pre></div>
+
+<p>The only downside to this approach is the need to maintain the comment_hierarchies table through new inserts and deletions. However, compared to other approaches, this is by far the most efficient.</p>
+
+<p>In terms of scalability, reconstructing an entire comments list in memory might be expensive if the depth level if high but a limit or constraint can be set on the initial query to prevent it going beyond a certain depth.</p>
+
+<p>Since there is a lot more going on within the application than can be explained here, I have created a demo rails application which can be found here: <a href="https://github.com/cheeyeo/Closure-Table-Rails4" target="_blank">https://github.com/cheeyeo/Closure-Table-Rails4</a></p>
+
+<p>In addition, there is a gem called <a href="https://github.com/mceachen/closure_tree" target="_blank">closure_tree</a> which encapsulates the Closure Table pattern and more advanced options. Some of the code shown above is adapted from this gem as I wanted to see how difficult it would be to roll my own solution.</p>
+
+<p>Happy Hacking!.</p>
+
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

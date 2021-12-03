@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Errno::EMFILE with Paperclip &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="How to resolve Errno::EMFILE when using Paperclip in Rails">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="paperclip, rails, ruby">
+    <link rel="canonical" href="https://cheeyeo.uk/ruby/rails/paperclip/2016/06/01/errno-emfile-ruby/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Errno::EMFILE with Paperclip">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/ruby/rails/paperclip/2016/06/01/errno-emfile-ruby/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Errno::EMFILE with Paperclip</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">June 1, 2016</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/paperclip">paperclip</a>
+      </li>
+      
+      <li>
+        <a href="/categories/rails">rails</a>
+      </li>
+      
+      <li>
+        <a href="/categories/ruby">ruby</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>In a commercial project, I recently came across an unusual bug which I have never seen before. What better way to document this for furture reference and what not to do in case it ever crops up again.</p>
+
+<p>The issue lies in a Rails application which uses Paperclip to store attachments in the database. The model in question uses Paperclip as per documented without any special configurations.</p>
+
+<p>One fine day, the application suddenly stopped working after a bulk upload of attachments. The error logs keep reporting the following error:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="no">Errno</span><span class="o">::</span><span class="ss">EMFILE</span><span class="p">:</span> <span class="no">Too</span> <span class="n">many</span> <span class="nb">open</span> <span class="n">files</span></code></pre></div>
+
+<p>After digging through the source code, I still could not work out where the issue lie. The stacktrace did not point to where exactly the error originated from. The only clue I had was <code>Too many open files</code>. With that, I started to inspect the model which handled file uploads more closely.</p>
+
+<p>There are several helper methods within this model which deserializes the binary blob from the database and calls <code>Paperclip.io_adapters.for</code> to extract metadata about the attachment such as width, height, content type.</p>
+
+<p><code>Paperclip.io_adapters.for</code> in turn calls <code>Paperclip::AttachmentAdapter.new</code> which in turns calls its <code>cache_current_values</code> method, which in turn invokes <code>copy_to_tempfile</code> with the target file. The method is shown below:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="k">def</span> <span class="nf">copy_to_tempfile</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+<span class="lineno">2</span>   <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">staged?</span>
+<span class="lineno">3</span>     <span class="no">FileUtils</span><span class="o">.</span><span class="n">cp</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">staged_path</span><span class="p">(</span><span class="vi">@style</span><span class="p">),</span> <span class="n">destination</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+<span class="lineno">4</span>   <span class="k">else</span>
+<span class="lineno">5</span>     <span class="n">source</span><span class="o">.</span><span class="n">copy_to_local_file</span><span class="p">(</span><span class="vi">@style</span><span class="p">,</span> <span class="n">destination</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+<span class="lineno">6</span>   <span class="k">end</span>
+<span class="lineno">7</span>   <span class="n">destination</span>
+<span class="lineno">8</span> <span class="k">end</span></code></pre></div>
+
+<p>The method is actually deserializing the binary blob from the database and saving it as a tempfile in /tmp directory. The issue here is that there is no automatic cleanup of the temp files once processing is completed. In the above case, the model keeps creating a temp file object everytime is calls <code>Paperclip.io_adapters.for</code>. This results in the temp directory being filled up as in the case of a bulk upload.</p>
+
+<p>To resolve this issue we need to be able to unlink or delete the tempfile after each call to the adapter. The problem here is that the <code>@tempfile</code> instance variable is not in the adapter’s public api.</p>
+
+<p>I tried to use refinements on the PaperClip::AbstractAdapter class in order to make <code>@tempfile</code> readable but it did not work in the context of a Rails app due to scope issues. With a little bit of meta programming within an initializer, I came up with the following:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="no">PaperClip</span><span class="o">::</span><span class="no">AbstractAdapter</span><span class="o">.</span><span class="n">class_eval</span> <span class="k">do</span>
+<span class="lineno">2</span>   <span class="n">attr_readable</span> <span class="ss">:tempfile</span>
+<span class="lineno">3</span> <span class="k">end</span></code></pre></div>
+
+<p>Now, I am able to access the tempfile and close it once processing is done like so:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="n">adapter</span> <span class="o">=</span> <span class="no">Paperclip</span><span class="o">.</span><span class="n">io_adapter</span><span class="o">.</span><span class="n">for</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+<span class="lineno">2</span> <span class="c1"># get the image width, height etc</span>
+<span class="lineno">3</span> <span class="n">width</span> <span class="o">=</span> <span class="no">Paperclip</span><span class="o">::</span><span class="no">Geometry</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">adapter</span><span class="p">)</span><span class="o">.</span><span class="n">width</span><span class="o">.</span><span class="n">to_i</span>
+<span class="lineno">4</span> <span class="n">height</span> <span class="o">=</span> <span class="no">Paperclip</span><span class="o">::</span><span class="no">Geometry</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">adapter</span><span class="p">)</span><span class="o">.</span><span class="n">height</span><span class="o">.</span><span class="n">to_i</span>
+<span class="lineno">5</span> 
+<span class="lineno">6</span> <span class="c1"># close the adpater and removes the temp file</span>
+<span class="lineno">7</span> <span class="n">adapter</span><span class="o">.</span><span class="n">tempfile</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="kp">true</span><span class="p">)</span> <span class="k">if</span> <span class="n">adapter</span><span class="o">.</span><span class="n">tempfile</span></code></pre></div>
+
+<p>We first close and then unlink / delete the tempfile. <code>Tempfile.close</code> does it automatically when you pass true to it.</p>
+
+<p>This has been a really interesting bug to track down and resolve and I did learn a lot about how Paperclip works under the hood. It also throws open my assumptions that the gem would undertake all the cleanup for me automatically. If anything, I learnt not to take for granted file IO in Ruby and always make sure that any file handles are opened and closed properly everytime.</p>
+
+<p>Happy Hacking!!</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

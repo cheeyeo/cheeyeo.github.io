@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Rack::Cache in Rails 5 &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Setting up and using Rack::Cache in Rails 5.">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="cache, http, rails5, ruby">
+    <link rel="canonical" href="https://cheeyeo.uk/ruby/rails5/cache/http/2016/08/09/rack-cache-rails/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Rack::Cache in Rails 5">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/ruby/rails5/cache/http/2016/08/09/rack-cache-rails/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Rack::Cache in Rails 5</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">August 9, 2016</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/cache">cache</a>
+      </li>
+      
+      <li>
+        <a href="/categories/http">http</a>
+      </li>
+      
+      <li>
+        <a href="/categories/rails5">rails5</a>
+      </li>
+      
+      <li>
+        <a href="/categories/ruby">ruby</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>Rack::Cache is a middleware which acts as a proxy cache between your client and the app. Initial requests are sent directly to the app, which then gets cached by the proxy. Subsequent requests go only to the proxy and bypass the app completely. It is used to cache assets that don’t change often but can also be used to cache http responses.</p>
+
+<h3 id="setting-up-caching-in-rails-5">Setting up caching in Rails 5.</h3>
+
+<p>You need to have <code>gem rack-cache</code> specified in the Gemfile.</p>
+
+<p>Then, run the following task:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="n">bin</span><span class="o">/</span><span class="n">rails</span> <span class="ss">dev</span><span class="p">:</span><span class="n">caching</span></code></pre></div>
+
+<p>This will create an empty file <code>tmp/caching-dev.txt</code>.</p>
+
+<p>Within <code>config/development.rb</code>, you will see the following code:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="c1"># Enable/disable caching. By default caching is disabled.</span>
+<span class="lineno"> 2</span>   <span class="k">if</span> <span class="no">Rails</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;tmp/caching-dev.txt&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">exist?</span>
+<span class="lineno"> 3</span>     <span class="n">config</span><span class="o">.</span><span class="n">action_controller</span><span class="o">.</span><span class="n">perform_caching</span> <span class="o">=</span> <span class="kp">true</span>
+<span class="lineno"> 4</span>     <span class="c1"># set below to true to use rack_cache</span>
+<span class="lineno"> 5</span>     <span class="c1"># also make sure rack-cache gem in gemfile</span>
+<span class="lineno"> 6</span>     <span class="n">config</span><span class="o">.</span><span class="n">action_dispatch</span><span class="o">.</span><span class="n">rack_cache</span> <span class="o">=</span> <span class="p">{</span>
+<span class="lineno"> 7</span>       <span class="ss">verbose</span><span class="p">:</span> <span class="kp">true</span><span class="p">,</span>
+<span class="lineno"> 8</span>       <span class="ss">metastore</span><span class="p">:</span>   <span class="s1">&#39;file:/appdir/tmp&#39;</span><span class="p">,</span>
+<span class="lineno"> 9</span>       <span class="ss">entitystore</span><span class="p">:</span> <span class="s1">&#39;file:/appdir/tmp&#39;</span><span class="p">,</span>
+<span class="lineno">10</span>       <span class="ss">allow_reload</span><span class="p">:</span> <span class="kp">true</span>
+<span class="lineno">11</span>     <span class="p">}</span>
+<span class="lineno">12</span> 
+<span class="lineno">13</span>     <span class="n">config</span><span class="o">.</span><span class="n">cache_store</span> <span class="o">=</span> <span class="ss">:memory_store</span>
+<span class="lineno">14</span>     <span class="n">config</span><span class="o">.</span><span class="n">public_file_server</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+<span class="lineno">15</span>       <span class="s1">&#39;Cache-Control&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;public, max-age=172800&#39;</span>
+<span class="lineno">16</span>     <span class="p">}</span>
+<span class="lineno">17</span> 
+<span class="lineno">18</span>   <span class="k">else</span>
+<span class="lineno">19</span>     <span class="n">config</span><span class="o">.</span><span class="n">action_controller</span><span class="o">.</span><span class="n">perform_caching</span> <span class="o">=</span> <span class="kp">false</span>
+<span class="lineno">20</span>     <span class="n">config</span><span class="o">.</span><span class="n">cache_store</span> <span class="o">=</span> <span class="ss">:null_store</span>
+<span class="lineno">21</span>   <span class="k">end</span></code></pre></div>
+
+<p>I enabled <code>Rack::Cache</code> by setting the <code>config.action_dispatch.rack_cache</code> key and passing in a hash of custom options. It can also be set to <code>true</code> and it will use the defaults defined in the Rails middleware stack.</p>
+
+<p>I have also set <code>verbose</code> to true in development mode so we can check if it is working.</p>
+
+<p>Run <code>bin/rails middleware</code> and you should see the following:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Sendfile</span>
+<span class="lineno">2</span> <span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Static</span>
+<span class="lineno">3</span> <span class="n">use</span> <span class="no">Module</span>
+<span class="lineno">4</span> <span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Executor</span></code></pre></div>
+
+<p>The presence of <code>Module</code> under <code>ActionDispatch::Static</code> means <code>Rack::Cache</code> is loaded. You can check the <a href="https://github.com/rails/rails/blob/5-0-stable/railties/lib/rails/application/default_middleware_stack.rb">Rails default middleware stack</a> to confirm the ordering.</p>
+
+<h3 id="workings-of-rackcache">Workings of Rack::Cache</h3>
+
+<p>Underneath the hood, Rack::Cache processes each request through the middleware stack and compares certain http request headers to determine if it should fetch the resource from the cache or to forward it to the application.</p>
+
+<p>There are certain conditions under which requests will bypass the cache and goes completely to the app:</p>
+
+<ul>
+  <li>
+    <p>A non-GET request is made.</p>
+  </li>
+  <li>
+    <p><code>allow_reload</code> is set to <code>true</code> in the configuration and client sends a <code>Cache-Control: no-cache</code> header</p>
+  </li>
+  <li>
+    <p><code>allow_revalidate</code> is set to <code>true</code> in the configuration and client sends a <code>Cache-Control: max-age=0</code> header</p>
+  </li>
+  <li>
+    <p>if the header contains authorization fields such as <code>Authorization</code> or ‘Cookie’, in which case Rack::Cache considers it to be private and will not cache it.</p>
+  </li>
+</ul>
+
+<p>This means that if you are using http conditionals methods in your controller actions such as <code>stale?</code> method, it might lead to surprising behaviour.</p>
+
+<p>Given an example application with a Users controller which has a conditional:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">UsersController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+<span class="lineno"> 2</span>   <span class="k">def</span> <span class="nf">index</span>
+<span class="lineno"> 3</span>     <span class="vi">@users</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">all</span>
+<span class="lineno"> 4</span> 
+<span class="lineno"> 5</span>     <span class="k">if</span> <span class="n">stale?</span><span class="p">(</span><span class="ss">etag</span><span class="p">:</span> <span class="vi">@users</span><span class="p">,</span> <span class="ss">last_modified</span><span class="p">:</span> <span class="vi">@users</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="ss">:updated_at</span><span class="p">),</span> <span class="kp">public</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+<span class="lineno"> 6</span>       <span class="n">respond_to</span> <span class="k">do</span> <span class="o">|</span><span class="nb">format</span><span class="o">|</span>
+<span class="lineno"> 7</span>         <span class="nb">format</span><span class="o">.</span><span class="n">html</span>
+<span class="lineno"> 8</span>       <span class="k">end</span>
+<span class="lineno"> 9</span>     <span class="k">end</span>
+<span class="lineno">10</span>   <span class="k">end</span>
+<span class="lineno">11</span> <span class="k">end</span></code></pre></div>
+
+<p>The option <code>public</code> must be set to <code>true</code> to allow Rack::Cache to store the content.</p>
+
+<p>The first request will bypass <code>Rack::Cache</code>, hits the application and returns a 200 response but also the additional headers:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> curl -i http://localhost:3000/users
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="c"># Response Headers</span>
+<span class="lineno">4</span> <span class="c"># ...</span>
+<span class="lineno">5</span> X-Rack-Cache: miss, ignore, store</code></pre></div>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="no">Started</span> <span class="no">GET</span> <span class="s2">&quot;/users&quot;</span> <span class="k">for</span> <span class="o">::</span><span class="mi">1</span> <span class="n">at</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">09</span> <span class="mi">16</span><span class="p">:</span><span class="mi">58</span><span class="p">:</span><span class="mi">36</span> <span class="o">+</span><span class="mo">0100</span>
+<span class="lineno">2</span>   <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">SchemaMigration</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">3</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="sb">`schema_migrations`</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="sb">`schema_migrations`</span>
+<span class="lineno">3</span> <span class="no">Processing</span> <span class="n">by</span> <span class="no">UsersController</span><span class="c1">#index as */*</span>
+<span class="lineno">4</span>    <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">4</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="no">MAX</span><span class="p">(</span><span class="sb">`users`</span><span class="o">.</span><span class="n">`updated_at</span><span class="sb">`) FROM `</span><span class="n">users</span><span class="sb">`</span>
+<span class="lineno">5</span> <span class="sb">   (0.3ms)  SELECT COUNT(*) AS `</span><span class="n">size</span><span class="sb">`, MAX(`</span><span class="n">users</span><span class="sb">`.`</span><span class="n">updated_at</span><span class="sb">`) AS timestamp FROM `</span><span class="n">users</span><span class="sb">`</span>
+<span class="lineno">6</span> <span class="sb">  Rendering users/index.html.erb within layouts/application</span>
+<span class="lineno">7</span> <span class="sb">  User Load (0.3ms)  SELECT `</span><span class="n">users</span><span class="sb">`.* FROM `</span><span class="n">users</span><span class="sb">`</span>
+<span class="lineno">8</span> <span class="sb">  Rendered users/index.html.erb within layouts/application (9.0ms)</span>
+<span class="lineno">9</span> <span class="sb">Completed 200 OK in 347ms (Views: 321.2ms | ActiveRecord: 4.7ms)</span></code></pre></div>
+
+<p><code>X-Rack-Cache: miss</code> means that the response is not found in the cache store so it is fetched from the application and then stored within the cache.</p>
+
+<p>A further request shows the following:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> <span class="c"># request</span>
+<span class="lineno">2</span> curl -i http://localhost:3000/users
+<span class="lineno">3</span> 
+<span class="lineno">4</span> <span class="c"># part of the response headers</span>
+<span class="lineno">5</span> <span class="c"># ....</span>
+<span class="lineno">6</span> X-Rack-Cache: stale, valid, store</code></pre></div>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="no">Started</span> <span class="no">GET</span> <span class="s2">&quot;/users&quot;</span> <span class="k">for</span> <span class="o">::</span><span class="mi">1</span> <span class="n">at</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">09</span> <span class="mi">16</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mi">56</span> <span class="o">+</span><span class="mo">0100</span>
+<span class="lineno">2</span> <span class="no">Processing</span> <span class="n">by</span> <span class="no">UsersController</span><span class="c1">#index as */*</span>
+<span class="lineno">3</span>    <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">4</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="no">MAX</span><span class="p">(</span><span class="sb">`users`</span><span class="o">.</span><span class="n">`updated_at</span><span class="sb">`) FROM `</span><span class="n">users</span><span class="sb">`</span>
+<span class="lineno">4</span> <span class="sb">   (0.3ms)  SELECT COUNT(*) AS `</span><span class="n">size</span><span class="sb">`, MAX(`</span><span class="n">users</span><span class="sb">`.`</span><span class="n">updated_at</span><span class="sb">`) AS timestamp FROM `</span><span class="n">users</span><span class="sb">`</span>
+<span class="lineno">5</span> <span class="sb">Completed 304 Not Modified in 3ms (ActiveRecord: 0.7ms)</span></code></pre></div>
+
+<p>Note that the application is now returning a 304 response and no rendering has occured on the application side but we still receive a HTML response in the terminal.</p>
+
+<p>This is because <code>Rack::Cache</code> has stored the initial first request and is returning it as the response, bypassing the application completely.</p>
+
+<p>The <code>X-Rack-Cache</code> header indicates that there is a cache hit and it is rendering the content directly from the cache store, which is specified in the <code>entitystore</code> configuration directory.</p>
+
+<p>If you look within this directory, you will see some folders. The <code>X-Content-Digest</code> shows the location of this cached response: the first 2 digits denote the directory and the remaining characters are the filename.</p>
+
+<p>In our example above, we have:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> <span class="c"># &lt;11&gt; directory</span>
+<span class="lineno">2</span> <span class="c"># &lt;463e97d33861d8ca81e9507e1d8d2e85cf2368&gt; filename</span>
+<span class="lineno">3</span> 
+<span class="lineno">4</span> X-Content-Digest: 11463e97d33861d8ca81e9507e1d8d2e85cf2368</code></pre></div>
+
+<p>which means the cached html fragment is stored in <code>tmp/11/463e97d33861d8ca81e9507e1d8d2e85cf2368</code>. Opening it should show the entire html response.</p>
+
+<p>By sending an <code>ETag</code> or <code>Last-Modified</code> header value that matches, we will not receive any html content back as no rendering has taken place, which is similar to just having http caching on its own.</p>
+
+<p>One point of note is that Rails 5 use <code>weak etags</code> by default, which means you would need to change the curl syntax to get it to work (note the W/ prefix):</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> curl -i -H <span class="s1">&#39;If-None-Match: W/&quot;e2b3d25cf8426f3cc00dcd43f8ac2148&quot;&#39;</span> http://localhost:3000/users</code></pre></div>
+
+<p>If you have <code>allow_reload</code> or <code>allow_revalidate</code> set, you can always bypass the cache, which is useful for testing:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> curl -i -H <span class="s1">&#39;Cache-Control: no-cache&#39;</span> http://localhost:3000/users</code></pre></div>
+
+<p>This will cause the rendering to occur and invalidate the cache.</p>
+
+<p>In Rails 5, ActiveRecord relation objects now return a cache key of the following format:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> &lt;class of records&gt;/query-&lt;md5 <span class="nb">hash</span>&gt;-&lt;nos of records&gt;-&lt;timestamp of most updated record in collection&gt;
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="s2">&quot;users/query-b37955d0f26d583466428665d31ecd71-3-20160809153910000000&quot;</span></code></pre></div>
+
+<p>In our UsersController, since we are passing <code>@users</code> to the <code>etag</code> parameter, Rails will automatically use the above to calculate the cache key.</p>
+
+<p>Even if the html template were to be updated, Rack::Cache will keep rendering the cached version.</p>
+
+<p>Only when a single user in the returned relation is updated will it render the new template changes again since the cache key will be invalidated.</p>
+
+<p>This might cause some confusion in development mode but can be easily bypassed by updating the <code>updated_at</code> field of any user in a console:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="o">&gt;&gt;</span> <span class="no">User</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">touch</span></code></pre></div>
+
+<p>Subsequent request will now render the updated content:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> curl -i http://localhost:3000/users
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="c"># renders the updated content and storing it in the cache</span>
+<span class="lineno">4</span> X-Rack-Cache: stale, invalid, ignore, store</code></pre></div>
+
+<p>The <code>X-Rack-Cache: stale, invalid, ignore, store</code> indicates that the updated content has been fetched and stored in the cache. Further request will return <code>X-Rack-Cache: stale, valid, store</code>, with a status code of 304 from the application and the cached content from the proxy.</p>
+
+<p>I hope this has helped in understanding and using <code>Rack::Cache</code> in Rails 5.</p>
+
+<p>Stay curious and keep hacking!</p>
+
+<h3 id="further-information">Further information</h3>
+<ul>
+  <li><a href="https://github.com/rtomayko/rack-cache">rack-cache github source</a></li>
+  <li><a href="https://github.com/rtomayko/rack-cache/blob/master/doc/configuration.markdown">rack cache configuration options</a></li>
+</ul>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

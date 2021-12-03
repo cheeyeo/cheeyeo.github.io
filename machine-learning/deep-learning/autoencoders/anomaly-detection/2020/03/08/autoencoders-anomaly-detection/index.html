@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Anomaly detection with Autoencoders &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="How to perform anomaly detection using Autoencoders">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="anomaly-detection, autoencoders, deep-learning, machine-learning">
+    <link rel="canonical" href="https://cheeyeo.uk/machine-learning/deep-learning/autoencoders/anomaly-detection/2020/03/08/autoencoders-anomaly-detection/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Anomaly detection with Autoencoders">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/machine-learning/deep-learning/autoencoders/anomaly-detection/2020/03/08/autoencoders-anomaly-detection/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Anomaly detection with Autoencoders</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">March 8, 2020</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/anomaly-detection">anomaly-detection</a>
+      </li>
+      
+      <li>
+        <a href="/categories/autoencoders">autoencoders</a>
+      </li>
+      
+      <li>
+        <a href="/categories/deep-learning">deep-learning</a>
+      </li>
+      
+      <li>
+        <a href="/categories/machine-learning">machine-learning</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>In my recent studies on computer vision and machine learning, I came across the concepts of autoencoders. Essentially, Autoencoders are neural networks which are trained using unsupervised learning.</p>
+
+<p>The aim of training an autoencoder is to learn a compressed representation of a given input. Internally, the network is able to learn the salient features of the data through successive layers and compresses it into a latent space representation. In some ways, this is similar to other algorithms such as PCA.</p>
+
+<p>The learned compressed latent space representation can be used in areas such as dimensionality reduction; denoising; and anomaly detection, which is the focus of this post.</p>
+
+<p>An autoencoder consists of 2 main components: encoder, decoder. The encoder is responsible for learning a latent representation of the input. The decoder tries to reconstruct the original input from the learned latent space.</p>
+
+<p>While there are speciality algorithms for anomaly detection such as IsolationForests; DBScan; and RCF, we will attempt to construct and autoencoder using tensorflow.</p>
+
+<p>Since we are dealing with image inputs, we can build a convolutional autoencoder. The model will comprise of convolutional layers which <code>downsamples</code> the input in the encoder model; and convolutional transpose layers to <code>upsample</code> the input in the decoder model to reconstruct the latent representation back into its original dimension.</p>
+
+<p>An example autoencoder could be as follows:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno"> 1</span> <span class="n">latent_dim</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="lineno"> 2</span> 
+<span class="lineno"> 3</span> <span class="n">input_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">depth</span><span class="p">)</span>
+<span class="lineno"> 4</span> <span class="n">chan_dim</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="lineno"> 5</span> 
+<span class="lineno"> 6</span> <span class="k">if</span> <span class="n">K</span><span class="o">.</span><span class="n">image_data_format</span><span class="p">()</span> <span class="o">==</span> <span class="s">&quot;channels_first&quot;</span><span class="p">:</span>
+<span class="lineno"> 7</span> 	<span class="n">input_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">depth</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+<span class="lineno"> 8</span> 	<span class="n">chan_dim</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="lineno"> 9</span> 
+<span class="lineno">10</span> <span class="n">inputs</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">)</span>
+<span class="lineno">11</span> <span class="n">x</span> <span class="o">=</span> <span class="n">inputs</span>
+<span class="lineno">12</span> 
+<span class="lineno">13</span> <span class="c"># Build encoder</span>
+<span class="lineno">14</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">filters</span><span class="p">:</span>
+<span class="lineno">15</span> 	<span class="c"># use strided convolutions to downsample</span>
+<span class="lineno">16</span> 	<span class="c"># no pooling layers...</span>
+<span class="lineno">17</span> 	<span class="n">x</span> <span class="o">=</span> <span class="n">Conv2D</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">),</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="s">&quot;same&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">18</span> 	<span class="n">x</span> <span class="o">=</span> <span class="n">LeakyReLU</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">19</span> 	<span class="n">x</span> <span class="o">=</span> <span class="n">BatchNormalization</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">chan_dim</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">20</span> 
+<span class="lineno">21</span> <span class="n">vol_size</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">int_shape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">22</span> <span class="n">x</span> <span class="o">=</span> <span class="n">Flatten</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">23</span> <span class="n">x</span> <span class="o">=</span> <span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">24</span> <span class="n">latent</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">25</span> <span class="n">encoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">latent</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;encoder&quot;</span><span class="p">)</span>
+<span class="lineno">26</span> 
+<span class="lineno">27</span> <span class="c"># Decoder which accepts output of encoder as input</span>
+<span class="lineno">28</span> <span class="n">latent_inputs</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">,))</span>
+<span class="lineno">29</span> <span class="n">x</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">vol_size</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))(</span><span class="n">latent_inputs</span><span class="p">)</span>
+<span class="lineno">30</span> <span class="n">x</span> <span class="o">=</span> <span class="n">Reshape</span><span class="p">((</span><span class="n">vol_size</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">vol_size</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">vol_size</span><span class="p">[</span><span class="mi">3</span><span class="p">]))(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">31</span> 
+<span class="lineno">32</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">filters</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+<span class="lineno">33</span> 	<span class="c"># apply CONV_TRANSPOSE =&gt; RELU =&gt; BN</span>
+<span class="lineno">34</span> 	<span class="n">x</span> <span class="o">=</span> <span class="n">Conv2DTranspose</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">),</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="s">&quot;same&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">35</span> 	<span class="n">x</span> <span class="o">=</span> <span class="n">LeakyReLU</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">36</span> 	<span class="n">x</span> <span class="o">=</span> <span class="n">BatchNormalization</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">chan_dim</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">37</span> 
+<span class="lineno">38</span> <span class="c"># apply single conv transpose layer to recover original depth of image</span>
+<span class="lineno">39</span> <span class="n">x</span> <span class="o">=</span> <span class="n">Conv2DTranspose</span><span class="p">(</span><span class="n">depth</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="s">&quot;same&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">40</span> <span class="n">outputs</span> <span class="o">=</span> <span class="n">Activation</span><span class="p">(</span><span class="s">&quot;sigmoid&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="lineno">41</span> 
+<span class="lineno">42</span> <span class="n">decoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">latent_inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;decoder&quot;</span><span class="p">)</span>
+<span class="lineno">43</span> 
+<span class="lineno">44</span> <span class="n">autoencoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">decoder</span><span class="p">(</span><span class="n">encoder</span><span class="p">(</span><span class="n">inputs</span><span class="p">)),</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;autoencoder&quot;</span><span class="p">)</span></code></pre></div>
+
+<p>Normally in a typical CNN model, we use <code>MaxPooling</code> to downsample the input dimensions. In this case, we are using <code>strides</code> of 2 to reduce the dimensions by half. By the fully-connected layers of the Encoder model, the input is reduced down to the specified <code>latent_dim</code> of 16.</p>
+
+<p>For the decoder, we use a <code>convolutional transpose</code> to upsample the latent dimension back to its original size. The outputs are then passed through a <code>sigmoid</code> activation layer as we have scaled our image inputs to be in the range of <code>[0,1]</code>.</p>
+
+<p>The two models are then used to construct the <code>autoencoder</code> model which is the model used for training and evaluation. Note that in the output of the autoencoder model, we specified the following:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno">1</span> <span class="n">decoder</span><span class="p">(</span><span class="n">encoder</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span></code></pre></div>
+
+<p>Since our aim is to train a model to reconstruct the inputs, it follows that we want our model to learn the following scoring function, given X as input:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno">1</span> <span class="n">f</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">=</span> <span class="n">D</span><span class="p">(</span><span class="n">E</span><span class="p">(</span><span class="n">X</span><span class="p">))</span></code></pre></div>
+
+<p>From my own experimentation, I found that most of the articles or books I came across use MNIST as the dataset, which is in grayscale. </p>
+
+<p>It can be difficult to train an autoencoder in RGB images as they are of higher dimensionality with 3 colour channels. I had to make the following alterations to the training process as follows:</p>
+
+<ul>
+  <li>
+    <p>Increased the number of epochs to at least 100 </p>
+  </li>
+  <li>
+    <p>Increased the latent dimensionality of model to be at least 128</p>
+  </li>
+  <li>
+    <p>Use a high learning rate to start training and gradually reduce it using <code>weight decay</code></p>
+  </li>
+  <li>
+    <p>Given the small number of training images, I used the <code>ImageDataGenerator</code> to augment the training set. I also used dropout and weight decay on the model to combat overfitting.</p>
+  </li>
+</ul>
+
+<p>The loss function was defined to the <code>mean-squared-error(MSE)</code> between the original image and the reconstructed image. During evaluation, we compute the MSE as the reconstruction loss and the lower the loss, it means the model has learnt a useful latent representation of the inputs and is able to reconstruct it.</p>
+
+<p>For this given example, I have trained the autoencoder model on 328 RGB images of forests, with 20% for validation. For the test set, I gathered some random images which don’t contain any forest imagery and evaluated its MSE.</p>
+
+<p>A loss plot of the training process is shown below:
+<img src="/assets/img/anomaly/loss_plot.png" alt="Training loss plot" /></p>
+
+<p>Both the training and validation loss curves show convergence from epoch 10 onwards. However, there is still overfitting from epoch 70 onwards as the validation loss starts to rise. The final reconstruction loss is <code>0.04396</code>.</p>
+
+<p>A sample of the reconstruction from the final autoencoder is shown below:
+<img src="/assets/img/anomaly/visualize_reconstructions.png" alt="Reconstructions visualisations" /></p>
+
+<p>The images in the left column show the original images and the right show the reconstructed images. The reconstructed image resolution is not as clear but the model is able to capture the salient features such as the green hues and tree like shapes, which are in forest imagery. </p>
+
+<p>The <a href="https://github.com/cheeyeo/autoencoder-anomaly-detection" target="_blank">complete code repository</a> can be found here.</p>
+
+<p>Keep hacking and stay curious!</p>
+
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

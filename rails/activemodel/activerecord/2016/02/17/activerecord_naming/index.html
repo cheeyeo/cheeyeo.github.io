@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Getting names of ActiveRecord classes &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Using ActiveModel::Naming to retrieve more information on names of ActiveRecord models.">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="activemodel, activerecord, rails">
+    <link rel="canonical" href="https://cheeyeo.uk/rails/activemodel/activerecord/2016/02/17/activerecord_naming/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Getting names of ActiveRecord classes">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/rails/activemodel/activerecord/2016/02/17/activerecord_naming/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Getting names of ActiveRecord classes</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">February 17, 2016</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/activemodel">activemodel</a>
+      </li>
+      
+      <li>
+        <a href="/categories/activerecord">activerecord</a>
+      </li>
+      
+      <li>
+        <a href="/categories/rails">rails</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>In a recent Rails application I am working on I stumbled upon the problem of having to dynamically instantiate a particular processing class based on the type of object being passed into a particular method.</p>
+
+<p>My first attempt involved getting the instance’s class name using the class’s name:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="n">post</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="n">post</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">name</span> <span class="c1"># =&gt; returns &quot;Posts&quot;</span></code></pre></div>
+
+<p>However this is redundant since <strong>ActiveRecord::Base</strong> by default extends <strong>ActiveModel::Naming</strong>:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="c1"># activerecord/lib/activerecord/base.rb</span>
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="k">module</span> <span class="nn">ActiveRecord</span>
+<span class="lineno">4</span>   <span class="k">class</span> <span class="nc">Base</span>
+<span class="lineno">5</span>     <span class="kp">extend</span> <span class="no">ActiveModel</span><span class="o">::</span><span class="no">Naming</span>
+<span class="lineno">6</span> 
+<span class="lineno">7</span>     <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="lineno">8</span>   <span class="k">end</span>
+<span class="lineno">9</span> <span class="k">end</span></code></pre></div>
+
+<p>Rather than call <strong>class.name</strong>, if you call <strong>model_name</strong> on an ActiveRecord instance or its class, you get an <strong>ActiveModel::Naming</strong> object back which contains useful naming metadata:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="n">post</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="n">post</span><span class="o">.</span><span class="n">model_name</span>
+<span class="lineno">4</span> 
+<span class="lineno">5</span> <span class="c1">#&lt;ActiveModel::Name:0x007fe2ea756cf8 @name=&quot;Post&quot;, @klass=Post(id: integer, title: string, body: text, created_at: datetime, updated_at: datetime), @singular=&quot;post&quot;, @plural=&quot;posts&quot;, @element=&quot;post&quot;, @human=&quot;Post&quot;, @collection=&quot;posts&quot;, @param_key=&quot;post&quot;, @i18n_key=:post, @route_key=&quot;posts&quot;, @singular_route_key=&quot;post&quot;&gt;</span></code></pre></div>
+
+<p>From the output above, I was able to just pass the instance’s <strong>model_name</strong> object into the method and since this object has a predictable api I was able to remove type checking completely:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="n">post</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="lineno"> 2</span> 
+<span class="lineno"> 3</span> 
+<span class="lineno"> 4</span> <span class="n">dynamic_processor</span><span class="p">(</span><span class="n">post</span><span class="p">)</span>
+<span class="lineno"> 5</span> 
+<span class="lineno"> 6</span> <span class="o">.</span><span class="n">.</span><span class="o">.</span><span class="n">.</span>
+<span class="lineno"> 7</span> 
+<span class="lineno"> 8</span> <span class="k">def</span> <span class="nf">dynamic_processor</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">opts</span><span class="o">=</span><span class="p">{})</span>
+<span class="lineno"> 9</span>   <span class="c1"># previous type checking code which includes calls like respond_to? etc</span>
+<span class="lineno">10</span>   <span class="c1"># this can now be replaced by a simple hash map of class names to classes</span>
+<span class="lineno">11</span>   <span class="n">processors</span> <span class="o">=</span> <span class="p">{</span>
+<span class="lineno">12</span>     <span class="s2">&quot;Post&quot;</span> <span class="o">=&gt;</span> <span class="no">Post</span><span class="p">,</span>
+<span class="lineno">13</span>     <span class="s2">&quot;Report&quot;</span> <span class="o">=&gt;</span> <span class="no">Report</span>
+<span class="lineno">14</span>   <span class="p">}</span>
+<span class="lineno">15</span> 
+<span class="lineno">16</span>   <span class="n">klass</span> <span class="o">=</span> <span class="n">processors</span><span class="o">[</span><span class="n">obj</span><span class="o">.</span><span class="n">model_name</span><span class="o">.</span><span class="n">name</span><span class="o">]</span>
+<span class="lineno">17</span>   <span class="n">klass</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+<span class="lineno">18</span> <span class="k">end</span></code></pre></div>
+
+<p>After all this time, I am still amazed by Rails and the pleasant surprises it brings to the table.</p>
+
+<p>You can <a href="http://api.rubyonrails.org/classes/ActiveModel/Naming.html" target="_blank">check the following docs for more information on ActiveModel::Naming</a></p>
+
+<p>Happy Hacking!</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Rails 4.2 ActionMailer &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Using ActionMailer in Rails 4.2">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="actionmailer, rails">
+    <link rel="canonical" href="https://cheeyeo.uk/rails/actionmailer/2015/01/31/rails-42-actionmailer/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Rails 4.2 ActionMailer">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/rails/actionmailer/2015/01/31/rails-42-actionmailer/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Rails 4.2 ActionMailer</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">January 31, 2015</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/actionmailer">actionmailer</a>
+      </li>
+      
+      <li>
+        <a href="/categories/rails">rails</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>From Rails 4.2, you are able to deliver an email via a background job.</p>
+
+<p>ActionMailer classes come with two additional methods:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="n">deliver_later</span>
+<span class="lineno">2</span> <span class="n">deliver_now</span></code></pre></div>
+
+<p><strong>deliver_now</strong> is similar to the original deliver method; it sends the email synchronously</p>
+
+<p><strong>deliver_later</strong> makes use of your background job system to send the email.</p>
+
+<p>To get this to work properly, some additional changes need to be made.</p>
+
+<p>Firstly, make sure that your background job system is working properly.</p>
+
+<p>This assumes that you have <strong>config.active_job.queue_adapter</strong> set to something like sidekiq:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="n">config</span><span class="o">.</span><span class="n">active_job</span><span class="o">.</span><span class="n">queue_adapter</span> <span class="o">=</span> <span class="ss">:sidekiq</span></code></pre></div>
+
+<p>Next you need to add the <strong>‘mailers’</strong> queue into the config file.</p>
+
+<p>ActionMailer by default places background deliveries into this queue.</p>
+
+<p>In sidekiq:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="c1"># config/sidekiq.yml</span>
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="ss">:queues</span><span class="p">:</span>
+<span class="lineno">4</span>   <span class="o">-</span> <span class="o">[</span><span class="n">mailers</span><span class="p">,</span> <span class="mi">1</span><span class="o">]</span></code></pre></div>
+
+<p>Tail the development logs to make sure the deliveries are sent:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="o">[</span><span class="no">ActiveJob</span><span class="o">]</span> <span class="o">[</span><span class="no">ActionMailer</span><span class="o">::</span><span class="no">DeliveryJob</span><span class="o">]</span> <span class="o">[</span><span class="n">fd25b472</span><span class="o">-</span><span class="mi">9</span><span class="n">d80</span><span class="o">-</span><span class="mi">47</span><span class="n">f2</span><span class="o">-</span><span class="mi">9</span><span class="n">ea6</span><span class="o">-</span><span class="mi">5</span><span class="n">da0e3cf7552</span><span class="o">]</span> <span class="no">Performed</span> <span class="no">ActionMailer</span><span class="o">::</span><span class="no">DeliveryJob</span> <span class="n">from</span> <span class="no">Sidekiq</span><span class="p">(</span><span class="n">mailers</span><span class="p">)</span> <span class="k">in</span> <span class="mi">3160</span><span class="o">.</span><span class="mi">77</span><span class="n">ms</span></code></pre></div>
+
+<p>In a follow up post I will describe the steps needed to test mailers using deliver_later and the pitfalls to avoid.</p>
+
+<p>Happy Hacking!</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

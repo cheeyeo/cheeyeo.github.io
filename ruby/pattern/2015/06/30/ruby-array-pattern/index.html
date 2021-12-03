@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Handling inputs with different arity in Ruby &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A pattern to deal with input arguments of various arity">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="pattern, ruby">
+    <link rel="canonical" href="https://cheeyeo.uk/ruby/pattern/2015/06/30/ruby-array-pattern/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Handling inputs with different arity in Ruby">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/ruby/pattern/2015/06/30/ruby-array-pattern/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Handling inputs with different arity in Ruby</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">June 30, 2015</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/pattern">pattern</a>
+      </li>
+      
+      <li>
+        <a href="/categories/ruby">ruby</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>In a recent Ruby project at work, I undertook a feature request which resulted in a fundamental change in one of the utility classes in the project.</p>
+
+<p>The class in question takes as input, an array of file objects for processing. Due to the requirement change, this class would now have to deal with both single and multiple file objects.</p>
+
+<p>My initial first attempt was clumsy to say the least:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">MyFiles</span>
+<span class="lineno"> 2</span>   <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="ss">input</span><span class="p">:)</span>
+<span class="lineno"> 3</span>     <span class="vi">@data</span> <span class="o">=</span> <span class="n">input</span>
+<span class="lineno"> 4</span>   <span class="k">end</span>
+<span class="lineno"> 5</span> 
+<span class="lineno"> 6</span>   <span class="k">def</span> <span class="nf">process</span>
+<span class="lineno"> 7</span>     <span class="k">if</span> <span class="vi">@data</span><span class="o">.</span><span class="n">respond_to?</span><span class="p">(</span><span class="ss">:each</span><span class="p">)</span>
+<span class="lineno"> 8</span>       <span class="vi">@data</span><span class="o">.</span><span class="n">each</span><span class="p">{</span><span class="o">|</span><span class="n">f</span><span class="o">|</span> <span class="n">process_file</span><span class="p">(</span><span class="n">f</span><span class="p">)}</span>
+<span class="lineno"> 9</span>     <span class="k">else</span>
+<span class="lineno">10</span>       <span class="n">process_file</span><span class="p">(</span><span class="vi">@data</span><span class="p">)</span>
+<span class="lineno">11</span>     <span class="k">end</span>
+<span class="lineno">12</span>   <span class="k">end</span>
+<span class="lineno">13</span> <span class="k">end</span></code></pre></div>
+
+<p>My refactoring has resulted in MyFiles knowing too much about the the type of the input passed in by checking if the input responds to <strong>:each</strong>.</p>
+
+<p>Also, this is not very DRY as subsequent code that has to process <strong>@data</strong> will duplicate the <strong>process_file</strong> method call and calling it either in an each block if it is an array or on its own for single inputs.</p>
+
+<p>After further thinking, I realised that the only variant is the @data input which could either be a collection of files or a single file input. If we transform @data into an <strong>Array</strong>, then we will have a collection to work with and not have to check for the type of input. my second attempt at refactoring goes like this:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">MyFiles</span>
+<span class="lineno"> 2</span>   <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="ss">input</span><span class="p">:)</span>
+<span class="lineno"> 3</span>     <span class="vi">@data</span> <span class="o">=</span> <span class="nb">Array</span><span class="p">(</span><span class="n">input</span><span class="p">)</span>
+<span class="lineno"> 4</span>   <span class="k">end</span>
+<span class="lineno"> 5</span> 
+<span class="lineno"> 6</span>   <span class="k">def</span> <span class="nf">process</span>
+<span class="lineno"> 7</span>     <span class="vi">@data</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">f</span><span class="o">|</span>
+<span class="lineno"> 8</span>       <span class="n">process_file</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="lineno"> 9</span>     <span class="k">end</span>
+<span class="lineno">10</span>   <span class="k">end</span>
+<span class="lineno">11</span> <span class="k">end</span></code></pre></div>
+
+<p>By wrapping input with <strong>Kernel#Array</strong>, we ensure that <strong>@data</strong> is always an array and I don’t have to worry about the input type anymore.</p>
+
+<p>Specifically, Array does the following:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="nb">Array</span><span class="p">(</span><span class="kp">nil</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="o">[]</span>
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="nb">Array</span><span class="p">(</span><span class="s2">&quot;one&quot;</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="s2">&quot;one&quot;</span><span class="o">]</span>
+<span class="lineno">4</span> 
+<span class="lineno">5</span> <span class="nb">Array</span><span class="p">(</span><span class="o">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="o">]</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="o">]</span></code></pre></div>
+
+<p>By transforming a variable input type into an array we make the class more flexible in terms of the inputs it can accept and a flexible interface to work with.</p>
+
+<p>Happy Hacking!!!</p>
+
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

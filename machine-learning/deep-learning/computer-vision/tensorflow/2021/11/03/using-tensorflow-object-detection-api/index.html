@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Guide to training your own object detector using the TFOD API V2 &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Pain-free guide to using the TFOD API">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="computer-vision, deep-learning, machine-learning, tensorflow">
+    <link rel="canonical" href="https://cheeyeo.uk/machine-learning/deep-learning/computer-vision/tensorflow/2021/11/03/using-tensorflow-object-detection-api/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Guide to training your own object detector using the TFOD API V2">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/machine-learning/deep-learning/computer-vision/tensorflow/2021/11/03/using-tensorflow-object-detection-api/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Guide to training your own object detector using the TFOD API V2</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">November 3, 2021</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/computer-vision">computer-vision</a>
+      </li>
+      
+      <li>
+        <a href="/categories/deep-learning">deep-learning</a>
+      </li>
+      
+      <li>
+        <a href="/categories/machine-learning">machine-learning</a>
+      </li>
+      
+      <li>
+        <a href="/categories/tensorflow">tensorflow</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  
+<p>In my recent studies on computer vision, I come across the Faster-RCNN network, which is widely used in real-time object detection. </p>
+
+<p>The purpose of this post is to describe how to get up and running with the TFOD framework. I defer a detailed discussion of the Faster-RCNN architecture and how to evaluate and export the trained model in a follow-up post.</p>
+
+<h3 id="hardware-and-os-tested">Hardware and OS tested</h3>
+
+<p>Tested on Ubuntu 18.04 LTS with a single GeForce GTX 1060 GPU, 16GB RAM.</p>
+
+<h3 id="setup">Setup</h3>
+
+<p>An <a href="https://github.com/cheeyeo/tfod_rcnn_example">example TFOD project</a> is created with this blog post to highlight the process.</p>
+
+<p>The <a href="http://cvrr.ucsd.edu/LISA/lisa-traffic-sign-dataset.html">LISA Traffic signs dataset</a> is used for training and evaluation. </p>
+
+<p>The dataset consists of 47 different USA traffic sign types. There are 7855 individual annotations. The training images were taken from a dashcam footage with varying levels of quality and resolution.</p>
+
+<p>To limit the amount of resources required for training, we will only be using 3 traffic sign types for training: <strong>stop sign, pedestrian crossing, signal ahead signs</strong></p>
+
+<p>The dataset will need to be preprocessed into a specific format, namely the TF record format, before it can be used by the TFOD API.</p>
+
+<p>Also the class labels will need to be processed into a specific format before it can be used.</p>
+
+<h3 id="data-preprocessing">Data Preprocessing</h3>
+
+<p>As mentioned previously, the input data needs to be converted into <strong>tf.train.Example</strong> record with details of each input converted into a <strong>tf.train.Features</strong> object.</p>
+
+<p>The dataset has 47 categories. We are only using three of it and defined it in the project config file as a python dict:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="p">{</span><span class="s">&quot;pedestrianCrossing&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s">&quot;signalAhead&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s">&quot;stop&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span></code></pre></div>
+
+<p>Next, we need to convert the dict above into the required format:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">item</span> <span class="p">{</span>
+	<span class="nb">id</span><span class="p">:</span> <span class="mi">1</span>
+	<span class="n">name</span><span class="p">:</span> <span class="s">&#39;pedestrianCrossing&#39;</span>
+<span class="p">}</span>
+<span class="n">item</span> <span class="p">{</span>
+	<span class="nb">id</span><span class="p">:</span> <span class="mi">2</span>
+	<span class="n">name</span><span class="p">:</span> <span class="s">&#39;signalAhead&#39;</span>
+<span class="p">}</span>
+<span class="n">item</span> <span class="p">{</span>
+	<span class="nb">id</span><span class="p">:</span> <span class="mi">3</span>
+	<span class="n">name</span><span class="p">:</span> <span class="s">&#39;stop&#39;</span>
+<span class="p">}</span></code></pre></div>
+
+<p>The above is implemented in the <strong>build_lisa_records.py</strong> script in the <a href="https://github.com/cheeyeo/tfod_rcnn_example">example TFOD project</a>.</p>
+
+<p>Each image detail is stored as a CSV row in the <strong>allAnnotations.csv</strong> file in the following format:</p>
+
+<ul>
+  <li>Filename</li>
+  <li>Annotation tag ( class label )</li>
+  <li>Upper left corner X ( start X )</li>
+  <li>Upper left corner Y ( start Y )</li>
+  <li>Lower right corner X ( end X )</li>
+  <li>Lower right corner Y ( end Y )</li>
+  <li>Occluded,On another road ( not used )</li>
+  <li>Origin file ( not used )</li>
+  <li>Origin frame number ( not used )</li>
+  <li>Origin track ( not used )</li>
+  <li>Origin track frame number ( not used )</li>
+</ul>
+
+<p>We parse the above CSV file, ignoring the headers and only use the first 6 fields to obtain the filename, label, and bounding box coordinates. The parsed data is stored into a python dict, keyed by the image filename. Each value is a tuple of the form <code>((label, (startX, startY, endX, endY)))</code>.</p>
+
+<p>The dictionary keys are passed through to <code>train_test_split</code> in scikit-learn to split the dataset into train/test sets. We use a split of 0.75 for training and 0.25 for testing.</p>
+
+<p>For each of the data split, we need to convert each entry into a <code>tf.train.Example</code> record with the following required fields for its features, which is a <code>tf.train.Features</code> object:</p>
+
+<ul>
+  <li>“image/height”</li>
+  <li>“image/width”</li>
+  <li>“image/filename”</li>
+  <li>“image/source_id” ( filename )</li>
+  <li>“image/encoded” ( actual image encoded into bytes )</li>
+  <li>“image/format” ( image file type )</li>
+  <li>“image/object/bbox/xmin” ( start X coord of bounding box ground truth )</li>
+  <li>“image/object/bbox/xmax” ( end X coord of bounding box ground truth )</li>
+  <li>“image/object/bbox/ymin” ( start Y coord of bounding box ground truth )</li>
+  <li>“image/object/bbox/ymax” ( end Y coord of bounding box ground truth )</li>
+  <li>“image/object/class/text” ( string class label )</li>
+  <li>“image/object/class/label” ( integer class label )</li>
+  <li>“image/object/difficult”</li>
+</ul>
+
+<p>Note that for “image/encoded”, we read each image using <code>tf.io.gfile.GFile</code> and encode it into bytes.</p>
+
+<p>Note that each of the bounding box coordinate is also normalized to the range [0, 1] by dividing it by its width and height values.</p>
+
+<p>Note that for “image/object/class/label”, we refer to the python dict for the classes defined in the config file to obtain an integer representation of the string label.</p>
+
+<p>A custom class <code>TFAnnotation</code> is created to generate the above features which are then used to create an individual example object:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">writer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">TFRecordWriter</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span>
+<span class="o">...</span>
+
+<span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Features</span><span class="p">(</span><span class="n">feature</span><span class="o">=</span><span class="n">tfannot</span><span class="o">.</span><span class="n">build</span><span class="p">())</span>
+<span class="n">example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Example</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">)</span>
+
+<span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">example</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">())</span></code></pre></div>
+
+<p>The above is implemented in the <code>build_lisa_records.py</code> script.</p>
+
+<p>After preprocessing, we should obtain the following training files:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">lisa/records/</span>
+<span class="go">├── classes.pbtxt</span>
+<span class="go">├── testing.record</span>
+<span class="go">└── training.record</span></code></pre></div>
+
+<h3 id="setup-tfod">Setup TFOD</h3>
+
+<p>To setup TFOD we need to:</p>
+
+<ul>
+  <li>Clone the models repository</li>
+  <li>Generate the protobuf files</li>
+  <li>Copy the setup.py file provided and install the dependencies</li>
+</ul>
+
+<p>The above can be summarized as follows:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">cd /tfod_example</span>
+
+<span class="go">git clone https://github.com/tensorflow/models.git</span>
+
+<span class="go">cd models/research/</span>
+
+<span class="go">protoc object_detection/protos/*.proto --python_out=.</span>
+
+<span class="go">cp object_detection/packages/tf2/setup.py .</span>
+
+<span class="go">python -m pip install --use-feature=2020-resolver .</span>
+
+<span class="go">cd ../../</span>
+
+<span class="go">setup.sh</span>
+
+<span class="go">python object_detection/builders/model_builder_tf2_test.py</span></code></pre></div>
+
+<p>Note that the <code>setup.sh</code> script is needed to add the absolute path of the <code>models/research</code> and <code>models/research/slim</code> directories to PYTHONPATH in order for the training script to locate the imports.</p>
+
+<p>An example setup.sh script looks as follows:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="gp">#</span>!/bin/sh
+
+<span class="go">export PYTHONPATH=$PYTHONPATH:&#39;/tfod_example/models/research&#39;:&#39;/tfod_example/models/research/slim&#39;</span></code></pre></div>
+
+<p>Once the provided test script runs successfully, you will have setup TFOD.</p>
+
+<p>The <a href="https://github.com/cheeyeo/tfod_rcnn_example">example TFOD project</a> has a setup.sh script provided that takes as arguments the required paths and set them up as environment variables.</p>
+
+<h3 id="setup-pre-trained-model">Setup pre-trained model</h3>
+
+<p>I decided to use the pre-trained <a href="http://download.tensorflow.org/models/object_detection/tf2/20200711/faster_rcnn_resnet101_v1_800x1333_coco17_gpu-8.tar.gz">Faster R-CNN Resnet101 V1 model</a> for this example.</p>
+
+<p>Faster-RCNN describes an architecture whereby a pre-trained base model is used for transfer learning. In this case, we are using ResNet but you can swap it out for other network types such as MobileNet for example.</p>
+
+<p>Download the <a href="http://download.tensorflow.org/models/object_detection/tf2/20200711/faster_rcnn_resnet101_v1_800x1333_coco17_gpu-8.tar.gz">Faster R-CNN Resnet101 V1 model</a> and untar it in a specific directory:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">mkdir -p lisa/experiments/training</span>
+
+<span class="go">tar -zxvf faster_rcnn_resnet101_v1_800x1333_coco17_gpu-8.tar.gz</span></code></pre></div>
+
+<p>Note that each model archive has an entry of <code>gpu</code> or <code>tpu</code> in its filename. You need to select the model based on your own hardware. For instance, for training using Colab, the tpu version should be used. If you have a local gpu to train against, use the gpu version.</p>
+
+<p>The model dir will consist of the following structure:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">lisa/experiments/training/faster_rcnn_resnet101_v1_800x1333_coco17_gpu-8/</span>
+<span class="go">├── checkpoint</span>
+<span class="go">│   ├── checkpoint</span>
+<span class="go">│   ├── ckpt-0.data-00000-of-00001</span>
+<span class="go">│   └── ckpt-0.index</span>
+<span class="go">├── saved_model</span>
+<span class="go">│   ├── variables</span>
+<span class="go">│   │   ├── variables.data-00000-of-00001</span>
+<span class="go">│   │   └── variables.index</span>
+<span class="go">│   └── saved_model.pb</span>
+<span class="go">└── pipeline.config</span></code></pre></div>
+
+<p>This directory contains the pretrained model’s weights and a sample config file. The path to the model’s weights is referenced in the training config file below.</p>
+
+<p>We make a copy of the <code>pipeline.config</code> file and use it as a starting point for this project.</p>
+
+<h3 id="defining-the-training-config">Defining the training config</h3>
+
+<p>After making a copy of the <code>pipeline.config</code> file above, we need to update it with our custom paths as follows. For this example we rename the sample config file as <code>faster_rcnn_lisa.config</code></p>
+
+<p>For the model config, we set <code>num_classes</code> to 3 specific for this example.</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">model</span> <span class="p">{</span>
+  <span class="n">faster_rcnn</span> <span class="p">{</span>
+    <span class="n">num_classes</span><span class="p">:</span> <span class="mi">3</span>
+    <span class="n">image_resizer</span> <span class="p">{</span>
+      <span class="n">keep_aspect_ratio_resizer</span> <span class="p">{</span>
+        <span class="n">min_dimension</span><span class="p">:</span> <span class="mi">600</span>
+        <span class="n">max_dimension</span><span class="p">:</span> <span class="mi">1024</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="o">....</span>
+<span class="p">}</span></code></pre></div>
+
+<p>For the <code>train_config</code> block we update the <code>batch_size</code>, <code>num_steps</code>, and checkpoints parameters:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">train_config</span><span class="p">:</span> <span class="p">{</span>
+  <span class="n">batch_size</span><span class="p">:</span> <span class="mi">1</span>
+  <span class="n">num_steps</span><span class="p">:</span> <span class="mi">50000</span>
+  <span class="o">...</span>
+
+  <span class="n">fine_tune_checkpoint_version</span><span class="p">:</span> <span class="n">V2</span>
+  <span class="n">fine_tune_checkpoint</span><span class="p">:</span> <span class="s">&quot;/tfod_example/lisa/experiments/training/faster_rcnn_resnet101_v1_800x1333_coco17_gpu-8/checkpoint/ckpt-0&quot;</span>
+  <span class="n">from_detection_checkpoint</span><span class="p">:</span> <span class="n">true</span>
+  <span class="n">fine_tune_checkpoint_type</span><span class="p">:</span> <span class="s">&quot;detection&quot;</span>
+
+  <span class="o">...</span>
+<span class="p">}</span></code></pre></div>
+
+<p>We set the num of training steps to 50000. The original value is 200000 but you would need a minimum of at least 20000 training steps for a baseline model. The batch size is set to 1 for my setup but can be increased to match your existing compute resources. The important configuration are the checkpoint values. Note that the <strong>fine_tune_checkpoint</strong> path must point to the checkpoint file in the model download from before. The filename should be just the prefix i.e. <code>ckpt-0</code>. Also set the finetune checkpoint type to “detection”.</p>
+
+<p>The next config blocks to change would be for the training and test datasets.</p>
+
+<p>For the train_input_reader block:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">train_input_reader</span><span class="p">:</span> <span class="p">{</span>
+  <span class="n">label_map_path</span><span class="p">:</span> <span class="s">&quot;/tfod_example/lisa/records/classes.pbtxt&quot;</span>
+  <span class="n">tf_record_input_reader</span> <span class="p">{</span>
+    <span class="n">input_path</span><span class="p">:</span> <span class="s">&quot;/tfod_example/lisa/records/training.record&quot;</span>
+  <span class="p">}</span>
+<span class="p">}</span></code></pre></div>
+
+<p>Note that these files are generated during the data preprocessing phase described above. The <strong>label_map_path</strong> refers to the mapping of string class names to its integer value. The <strong>tf_record_input_reader</strong> is the TFRecord training file.</p>
+
+<p>Next we update the eval_input_reader block:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">eval_input_reader</span><span class="p">:</span> <span class="p">{</span>
+  <span class="n">label_map_path</span><span class="p">:</span> <span class="s">&quot;/tfod_example/lisa/records/classes.pbtxt&quot;</span>
+  <span class="n">shuffle</span><span class="p">:</span> <span class="n">false</span>
+  <span class="n">num_epochs</span><span class="p">:</span> <span class="mi">1</span>
+  <span class="n">tf_record_input_reader</span> <span class="p">{</span>
+    <span class="n">input_path</span><span class="p">:</span> <span class="s">&quot;/tfod_example/lisa/records/testing.record&quot;</span>
+  <span class="p">}</span>
+<span class="p">}</span></code></pre></div>
+
+<p>The <strong>tf_record_input_reader</strong> refers to the TFRecord for the test set.</p>
+
+<p>For the eval_config block:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">eval_config</span><span class="p">:</span> <span class="p">{</span>
+  <span class="n">metrics_set</span><span class="p">:</span> <span class="s">&quot;coco_detection_metrics&quot;</span>
+  <span class="n">num_examples</span><span class="p">:</span> <span class="mi">955</span>
+<span class="p">}</span></code></pre></div>
+
+<p>We set the num_examples to match the total number of examples in the test set which is provided when running the preprocessing script.</p>
+
+<p>Note that all the paths must be absolute paths.</p>
+
+<h3 id="training-process">Training process</h3>
+
+<p>The final step is to run the provided training script from within the TFOD models directory cloned earlier.</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">source</span> <span class="n">setup</span><span class="o">.</span><span class="n">sh</span>
+
+<span class="n">python</span> <span class="n">models</span><span class="o">/</span><span class="n">research</span><span class="o">/</span><span class="n">object_detection</span><span class="o">/</span><span class="n">model_main_tf2</span><span class="o">.</span><span class="n">py</span> \
+	<span class="o">--</span><span class="n">pipeline_config_path</span><span class="o">=</span><span class="s">&quot;/tfod_example/lisa/experiments/training/faster_rcnn_lisa.config&quot;</span> \
+	<span class="o">--</span><span class="n">model_dir</span><span class="o">=</span><span class="s">&quot;/tfod_example/lisa/experiments/training&quot;</span> \
+	<span class="o">--</span><span class="n">num_train_steps</span><span class="o">=</span><span class="mi">50000</span> \
+	<span class="o">--</span><span class="n">sample_1_of_n_eval_examples</span><span class="o">=</span><span class="mi">1</span> \
+	<span class="o">--</span><span class="n">alsologtostderr</span></code></pre></div>
+
+<p>You need to setup the <strong>PYTHONPATH</strong> for the TFOD imports before runnning the training script by running <code>source setup.sh</code></p>
+
+<p>Note that we are using the <code>model_main_tf2.py</code> script as this example is for TF 2.</p>
+
+<p>If training starts successfully, you should see the following output:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">...</span>
+
+<span class="go">INFO:tensorflow:Step 2100 per-step time 0.733s</span>
+<span class="go">I1103 12:46:44.766502 140491317245760 model_lib_v2.py:700] Step 2100 per-step time 0.733s</span>
+<span class="go">INFO:tensorflow:{&#39;Loss/BoxClassifierLoss/classification_loss&#39;: 0.01688414,</span>
+<span class="go"> &#39;Loss/BoxClassifierLoss/localization_loss&#39;: 0.05560676,</span>
+<span class="go"> &#39;Loss/RPNLoss/localization_loss&#39;: 0.013312755,</span>
+<span class="go"> &#39;Loss/RPNLoss/objectness_loss&#39;: 0.008382628,</span>
+<span class="go"> &#39;Loss/regularization_loss&#39;: 0.0,</span>
+<span class="go"> &#39;Loss/total_loss&#39;: 0.09418628,</span>
+<span class="go"> &#39;learning_rate&#39;: 0.0042}</span>
+<span class="go">I1103 12:46:44.766725 140491317245760 model_lib_v2.py:701] {&#39;Loss/BoxClassifierLoss/classification_loss&#39;: 0.01688414,</span>
+<span class="go"> &#39;Loss/BoxClassifierLoss/localization_loss&#39;: 0.05560676,</span>
+<span class="go"> &#39;Loss/RPNLoss/localization_loss&#39;: 0.013312755,</span>
+<span class="go"> &#39;Loss/RPNLoss/objectness_loss&#39;: 0.008382628,</span>
+<span class="go"> &#39;Loss/regularization_loss&#39;: 0.0,</span>
+<span class="go"> &#39;Loss/total_loss&#39;: 0.09418628,</span>
+<span class="go"> &#39;learning_rate&#39;: 0.0042}</span>
+
+<span class="go">....</span></code></pre></div>
+
+<p>Since there is an existing checkpoint, the trainer has picked up on it from a previous run.</p>
+
+<p>To view the training progress you can use <code>tensorboard</code> to point to the training subdirectory as follows:
+<code>
+tensorboard --logdir /tfod_example/lisa/experiments/training
+</code></p>
+
+<p>Note that it may take some time before the mAP metrics show up in the dashboard.</p>
+
+<p>In conclusion, the TFOD is a robust framework to learn for prototyping object detection projects. Due to its complexity, it will take a while to get used to its intricacies but the effort is worth it in my opinion.</p>
+
+<p>For more information, consult the official <a href="https://github.com/tensorflow/models/tree/master/research/object_detection">TensorFlow Object Detection API</a> github project page and the official documentation on <a href="https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf2.md">TFOD setup using TF 2</a>. Pre-trained models can be found on <a href="https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf2_detection_zoo.md">TF2 Model Zoo</a>.</p>
+
+<p>Happy Hacking !</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

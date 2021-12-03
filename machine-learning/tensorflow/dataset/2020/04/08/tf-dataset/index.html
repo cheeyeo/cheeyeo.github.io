@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Tensorflow 2.0 - Dataset &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Introduction to using tf.data.Dataset">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="dataset, machine-learning, tensorflow">
+    <link rel="canonical" href="https://cheeyeo.uk/machine-learning/tensorflow/dataset/2020/04/08/tf-dataset/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Tensorflow 2.0 - Dataset">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/machine-learning/tensorflow/dataset/2020/04/08/tf-dataset/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Tensorflow 2.0 - Dataset</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">April 8, 2020</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/dataset">dataset</a>
+      </li>
+      
+      <li>
+        <a href="/categories/machine-learning">machine-learning</a>
+      </li>
+      
+      <li>
+        <a href="/categories/tensorflow">tensorflow</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>This is a series of posts exploring some of the new features in tensorflow 2.0, which I am currently using in my own projects. These posts are introductory guides and do not cover more advanced uses.</p>
+
+<p>Tensorflow 2.0 introduced the concept of a <code>Dataset</code>. This high level API allows you to load different data formats such as images, numpy arrays and panda dataframes.</p>
+
+<p>Previously, in Keras, when we want to load a training dataset that is too big to fit into memory, we create a custom generator that iterates over the dataset in batches which are fed into the model during training using method calls such as <code>fit_generator</code>.</p>
+
+<p>The issue with the above approach is that it can be error-prone to setup. For instance, changes to the dataset structure means changes to the generator or there could be issues in the generator code implementation.</p>
+
+<p>A <code>Dataset</code> is a high-level construct in TF 2.0 which represent a collection of data or documents. It supports batching, caching and pre-fetching of data in the background. The dataset is not loaded into memory but streamed into the model when its iterated through.</p>
+
+<p>Using a <code>Dataset</code> generally follows the guidelines:</p>
+
+<ul>
+  <li>
+    <p>Create a dataset from input data</p>
+  </li>
+  <li>
+    <p>Apply transformations to preprocess the data</p>
+  </li>
+  <li>
+    <p>Iterate over dataset and process its elements i.e. training loop</p>
+  </li>
+</ul>
+
+<p>Let’s go through each of the above stages in the pipeline.</p>
+
+<h3 id="creating-a-dataset">Creating a dataset</h3>
+
+<p>The easiest method to create a dataset is to use the <code>from_tensor_slices</code> method:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno">1</span> <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensor_slices</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+<span class="lineno">2</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">dataset</span><span class="p">:</span>
+<span class="lineno">3</span>   <span class="k">print</span><span class="p">(</span><span class="n">ele</span><span class="p">)</span> <span class="c"># returns tf.Tensor</span></code></pre></div>
+
+<p>If we try to print each element of a dataset, we get a <code>Tensor</code> object back. In order to inspect the contents, we can call the <code>as_numpy_iterator</code> method to convert the tensors into numpy arrays, which returns an iterable:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno">1</span> <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">as_numpy_iterator</span><span class="p">():</span>
+<span class="lineno">2</span>   <span class="k">print</span><span class="p">(</span><span class="n">num</span><span class="p">)</span></code></pre></div>
+
+<p>To create dataset from a directory list of files, we can use the <code>list_files</code> method which accepts a file/glob matching pattern. For example, if we had a directory of <code>"/mydir/"</code>, consisting of python files such as <code>"/mydir/a.py", "/mydir/b.py"</code>, it would produce the following:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno">1</span> <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span><span class="s">&quot;/mydir/*.py&quot;</span><span class="p">)</span>
+<span class="lineno">2</span> <span class="n">files_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">as_numpy_iterator</span><span class="p">())</span>
+<span class="lineno">3</span> <span class="k">print</span><span class="p">(</span><span class="n">files_list</span><span class="p">)</span> <span class="c"># =&gt; returns [&quot;/mydir/a.py&quot;, &quot;/mydir/b.py&quot;]</span></code></pre></div>
+
+<p>The issue with the above approach is that globbing occurs for every filename encountered in the path, so its more efficient to produce the list of file names first and construct the dataset using <code>from_tensor_slices</code></p>
+
+<p>There are other methods such as <code>from_generator</code> and <code>from_tensors</code> which are outside the scope of this article. We will be using <code>from_tensor_slices</code> in a working example below.</p>
+
+<h3 id="apply-transformations-to-dataset">Apply transformations to dataset</h3>
+
+<p>Now that we have a dataset of elements, the next step would be to preprocess it. We can call the <code>map</code> method and pass a function to process each element.</p>
+
+<p>For instance, we may want to resize each image and perform mean normalization as part of preprocessing.</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno"> 1</span> <span class="c"># list_of_files is a collection of file paths...</span>
+<span class="lineno"> 2</span> <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensor_slices</span><span class="p">(</span><span class="n">list_of_files</span><span class="p">)</span>
+<span class="lineno"> 3</span> 
+<span class="lineno"> 4</span> <span class="n">train_ds</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">process_img</span><span class="p">)</span>
+<span class="lineno"> 5</span> 
+<span class="lineno"> 6</span> <span class="k">def</span> <span class="nf">process_img</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+<span class="lineno"> 7</span>   <span class="c"># read and process the image</span>
+<span class="lineno"> 8</span>   <span class="n">img</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+<span class="lineno"> 9</span>   <span class="n">img</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">decode_jpeg</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="lineno">10</span>   <span class="c"># mean normalization</span>
+<span class="lineno">11</span>   <span class="n">img</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">convert_image_dtype</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="lineno">12</span>   <span class="n">img</span> <span class="o">/=</span> <span class="mf">255.0</span>
+<span class="lineno">13</span>   <span class="c"># resize the image</span>
+<span class="lineno">14</span>   <span class="n">img</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">))</span>
+<span class="lineno">15</span>   <span class="k">return</span> <span class="n">img</span></code></pre></div>
+
+<p>After calling <code>process_img</code> in the above, <code>train_ds</code> will now contain a dataset of preprocessed images.</p>
+
+<p>Since <code>map</code> returns a dataset, we can chain multiple calls together, clarifying the sequence of operations:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno"> 1</span> <span class="k">def</span> <span class="nf">func1</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="lineno"> 2</span>   <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="mi">2</span>
+<span class="lineno"> 3</span> 
+<span class="lineno"> 4</span> <span class="k">def</span> <span class="nf">func2</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="lineno"> 5</span>   <span class="k">return</span> <span class="n">x</span> <span class="o">**</span> <span class="mi">2</span>
+<span class="lineno"> 6</span> 
+<span class="lineno"> 7</span> <span class="n">ds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensor_slices</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+<span class="lineno"> 8</span> 
+<span class="lineno"> 9</span> <span class="n">new_ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">func1</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">func2</span><span class="p">)</span>
+<span class="lineno">10</span> 
+<span class="lineno">11</span> <span class="k">print</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">new_ds</span><span class="o">.</span><span class="n">as_numpy_iterator</span><span class="p">()))</span> <span class="c"># =&gt; [4, 16, 36]</span></code></pre></div>
+
+<h3 id="iteration-over-dataset">Iteration over dataset</h3>
+
+<p>We need to set certain parameters on the dataset object before we can pass it into a model for training. This would include setting the batch size, caching, pre-fetching options.</p>
+
+<p>Using the image classification example above, we can do the following:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno">1</span> <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensor_slices</span><span class="p">(</span><span class="n">list_of_files</span><span class="p">)</span>
+<span class="lineno">2</span> <span class="n">train_ds</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">process_img</span><span class="p">)</span>
+<span class="lineno">3</span> <span class="n">train_ds</span> <span class="o">=</span> <span class="n">train_ds</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">buffer_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span>
+<span class="lineno">4</span> 
+<span class="lineno">5</span> <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_ds</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span></code></pre></div>
+
+<p>The <code>shuffle</code> function randomly shuffles the elements in the dataset. The <code>batch</code> function sets the batch size for each training epoch. Note that by using <code>batch</code> we don’t have to set the batch size argument in the <code>fit</code> function.</p>
+
+<p>One can also chain further functions such as <code>cache</code> to cache the data in memory or on the filesystem by setting the filename argument in the function. This is extremely useful when training large datasets. </p>
+
+<p>Note that, the first iteration of the training loop will create the cache, after which, subsequent runs will use the same cached data in the same sequence. To randomize the data between iterations, call <code>shuffle</code> after <code>cache</code></p>
+
+<p>For example:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno">1</span> <span class="n">train_ds</span> <span class="o">=</span> <span class="n">train_ds</span><span class="o">.</span><span class="n">cache</span><span class="p">(</span><span class="s">&quot;cache/mycache&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">buffer_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span></code></pre></div>
+
+<p>When the training loop is restarted, the cache directory needs to be cleared else it will raise an exception.</p>
+
+<p>For most training scenarios, passing the dataset into <code>model.fit</code> will be sufficient. However, if you do have a custom/manual training process where you are iterating the dataset across multiple epochs, you need to call <code>repeat</code> before <code>batch</code> to iterate over the dataset.</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno">1</span> <span class="n">train_ds</span> <span class="o">=</span> <span class="n">train_ds</span><span class="o">.</span><span class="n">repeat</span><span class="p">()</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span>
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">train_ds</span><span class="o">.</span><span class="n">as_numpy_iterator</span><span class="p">():</span>
+<span class="lineno">4</span>   <span class="k">print</span><span class="p">(</span><span class="n">ele</span><span class="p">)</span></code></pre></div>
+
+<p>To access the next batch of data, you can create an iterator from the dataset by calling <code>as_numpy_iterator</code> or wrapping the dataset object in <code>iter()</code> and call <code>next</code> to retrieve the next batch of data.</p>
+
+<p>For a working implementation, please refer to the following example on <a href="https://www.tensorflow.org/guide/keras/train_and_evaluate#training_evaluation_from_tfdata_datasets" target="_blank">applying tf.data.Dataset on MNIST</a>. The <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset" target="_blank">tf.data.Dataset API</a> has more details on the various functions and examples.</p>
+
+<p>Happy Hacking!</p>
+
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

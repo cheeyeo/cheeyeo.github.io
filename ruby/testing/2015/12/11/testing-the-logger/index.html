@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Testing Logger in Ruby &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A more flexible approach of testing exceptions being logged in Ruby">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="ruby, testing">
+    <link rel="canonical" href="https://cheeyeo.uk/ruby/testing/2015/12/11/testing-the-logger/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Testing Logger in Ruby">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/ruby/testing/2015/12/11/testing-the-logger/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Testing Logger in Ruby</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">December 11, 2015</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/ruby">ruby</a>
+      </li>
+      
+      <li>
+        <a href="/categories/testing">testing</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>I came across an interesting dilemma while working on a recent project. I had a logger object within a class which writes error messages to an external log file.</p>
+
+<p>While I normally don’t test log files, there was a long formatted message produced by the logger which warrants some test coverage since it is triggered when certain error conditions occur, which means it is also dependent on the kind of StandardErrors that occur.</p>
+
+<p>My first approach was to stub out the ‘error’ method on the logger object to return a mock response using mocha with MiniTest and asserting against the message when certain errors are raised.</p>
+
+<p>However this apporach does not feel I’m testing the SUT but rather defining a canned response which will have to change if the underlying system implementation changes in the future.</p>
+
+<p>I decided to abandon the mock/stub approach. I created a new class object called TestLogger which responds to the ‘error’ method call and is simply as follows:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">FakeLogger</span>
+<span class="lineno"> 2</span>   <span class="kp">attr_accessor</span> <span class="ss">:errors</span>
+<span class="lineno"> 3</span> 
+<span class="lineno"> 4</span>   <span class="k">def</span> <span class="nf">initialize</span>
+<span class="lineno"> 5</span>     <span class="vi">@errors</span> <span class="o">=</span> <span class="o">[]</span>
+<span class="lineno"> 6</span>   <span class="k">end</span>
+<span class="lineno"> 7</span> 
+<span class="lineno"> 8</span>   <span class="k">def</span> <span class="nf">error</span><span class="p">(</span><span class="n">exception</span><span class="p">)</span>
+<span class="lineno"> 9</span>     <span class="vi">@errors</span> <span class="o">&lt;&lt;</span> <span class="n">exception</span>
+<span class="lineno">10</span>   <span class="k">end</span>
+<span class="lineno">11</span> <span class="k">end</span></code></pre></div>
+
+<p>Within the class which has the logging, I also refactor for it to accept an optional Logger as a parameter:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">ExceptionalClass</span>
+<span class="lineno"> 2</span>   <span class="c1"># rest of class implementation</span>
+<span class="lineno"> 3</span> 
+<span class="lineno"> 4</span>   <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="ss">logger</span><span class="p">:</span> <span class="no">Logger</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">&quot;mylogs.log&quot;</span><span class="p">))</span>
+<span class="lineno"> 5</span>     <span class="vi">@logger</span> <span class="o">=</span> <span class="n">logger</span>
+<span class="lineno"> 6</span>   <span class="k">end</span>
+<span class="lineno"> 7</span> 
+<span class="lineno"> 8</span>   <span class="k">def</span> <span class="nf">raise_an_error!</span>
+<span class="lineno"> 9</span>     <span class="k">raise</span> <span class="no">StandardError</span><span class="p">,</span> <span class="s2">&quot;An error has occured&quot;</span>
+<span class="lineno">10</span>   <span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+<span class="lineno">11</span>     <span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="s2">&quot;An exception was raised: </span><span class="si">#{</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2"> </span><span class="si">#{</span><span class="n">e</span><span class="o">.</span><span class="n">class</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="lineno">12</span>   <span class="k">end</span>
+<span class="lineno">13</span> <span class="k">end</span></code></pre></div>
+
+<p>Within my unit tests, I just instantiate the FakeLogger class and pass it as a params into the logger method:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="nb">test</span> <span class="s2">&quot;it should log error messsages&quot;</span> <span class="k">do</span>
+<span class="lineno"> 2</span>     <span class="n">fake_logger</span> <span class="o">=</span> <span class="no">FakeLogger</span><span class="o">.</span><span class="n">new</span>
+<span class="lineno"> 3</span>     <span class="n">exceptional_class</span> <span class="o">=</span> <span class="no">ExceptionalClass</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">logger</span><span class="p">:</span> <span class="n">fake_logger</span><span class="p">)</span>
+<span class="lineno"> 4</span> 
+<span class="lineno"> 5</span>     <span class="n">assert_raise</span> <span class="no">StandardError</span> <span class="k">do</span>
+<span class="lineno"> 6</span>       <span class="n">exceptional_class</span><span class="o">.</span><span class="n">raise_an_error!</span>
+<span class="lineno"> 7</span>     <span class="k">end</span>
+<span class="lineno"> 8</span> 
+<span class="lineno"> 9</span>     <span class="n">assert_includes</span> <span class="n">fake_logger</span><span class="o">.</span><span class="n">errors</span><span class="p">,</span> <span class="s2">&quot;An exception was raised: An error has occured StandardError&quot;</span>
+<span class="lineno">10</span>   <span class="k">end</span></code></pre></div>
+
+<p>I was able to create assertions and test it against the fake logger through its @errors array in the test environment. In the production environment I am also able to pass in a custom logger of my choice or leave it as the default. I feel that this approach is more flexible to change and also provide adequate test coverage on rescuing the exceptions being raised.</p>
+
+<p>Happy Hacking!</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

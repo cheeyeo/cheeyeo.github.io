@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Multi-gpu setup on Ubuntu 18.04 &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="How to create a multi-gpu setup using egpu on Ubuntu 18.04">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="18.04, egpu, machine-learning, ubuntu">
+    <link rel="canonical" href="https://cheeyeo.uk/egpu/ubuntu/18.04/machine-learning/2020/03/13/multi-egpu-ubuntu/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Multi-gpu setup on Ubuntu 18.04">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/egpu/ubuntu/18.04/machine-learning/2020/03/13/multi-egpu-ubuntu/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Multi-gpu setup on Ubuntu 18.04</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">March 13, 2020</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/18.04">18.04</a>
+      </li>
+      
+      <li>
+        <a href="/categories/egpu">egpu</a>
+      </li>
+      
+      <li>
+        <a href="/categories/machine-learning">machine-learning</a>
+      </li>
+      
+      <li>
+        <a href="/categories/ubuntu">ubuntu</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>When training large image datasets, it is beneficial to have more than 1 GPU available, to spread the workload with distributed training and reduce the amount of training time. However, setting up an eGPU on Ubuntu pose many challenges.</p>
+
+<p>This article aims to explain how I managed to setup a Sonnet Breakaway box with a spare GTX-1060 to work with the built-in GTX-1060 card, running on Ubuntu 18.04 with kernel 4.15.0-88-generic. </p>
+
+<p>Before you can proceed, you need to have a working nvidia graphics card with the right drivers. Run <code>nvidia-smi -L</code> to ensure that it returns the current graphics card.</p>
+
+<p>These are the steps I took:</p>
+
+<h3 id="process">Process</h3>
+
+<ul>
+  <li>Plugin and power the egpu box. Navigate to the <code>Settings &gt; Devices &gt; Thunderbolt</code>, you should see the egpu box listed if its connected. Note that Ubuntu is able to perform authorization automatically. If all goes well, you should see the screenshot below:</li>
+</ul>
+
+<p><img src="/assets/img/egpu/ubuntu_thunderbolt_authorized.png" alt="Output of thunderbolt devices screen" /></p>
+
+<p>For sanity check, you can also run the <code>boltctl</code> command and check that the egpu is connected.</p>
+
+<p><img src="/assets/img/egpu/egpu_boltctl_list.png" alt="Output of botlctl" /></p>
+
+<p>If there is an error with the authorization or the device is not recognized, you might have to switch off thunderbolt security under BIOS or run the following command:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">sudo sh -c &#39;echo 1 &gt; /sys/bus/thunderbolt/devices/0-0/authorized&#39;</span></code></pre></div>
+
+<p>Update the above based on your device details.</p>
+
+<ul>
+  <li>Update the <code>/etc/default/grub</code> file to include “nvidia.modset=1” at the end of the “GRUB_CMDLINE_LINUX” like so:</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> <span class="nv">GRUB_CMDLINE_LINUX_DEFAULT</span><span class="o">=</span><span class="s2">&quot;quiet splash nvidia.modeset=1&quot;</span></code></pre></div>
+
+<p>Run <code>sudo update-grub</code> and reboot.</p>
+
+<ul>
+  <li>Create a X11 config file in <code>/etc/X11/</code> with the following for the egpu only:</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno"> 1</span> Section <span class="s2">&quot;Module&quot;</span>
+<span class="lineno"> 2</span>     Load           <span class="s2">&quot;modesetting&quot;</span>
+<span class="lineno"> 3</span> EndSection
+<span class="lineno"> 4</span> 
+<span class="lineno"> 5</span> Section <span class="s2">&quot;Device&quot;</span>
+<span class="lineno"> 6</span>     Identifier     <span class="s2">&quot;Device0&quot;</span>
+<span class="lineno"> 7</span>     Driver         <span class="s2">&quot;nvidia&quot;</span>
+<span class="lineno"> 8</span>     BusID          <span class="s2">&quot;7:0:0&quot;</span>
+<span class="lineno"> 9</span>     Option         <span class="s2">&quot;AllowEmptyInitialConfiguration&quot;</span>
+<span class="lineno">10</span>     Option         <span class="s2">&quot;AllowExternalGpus&quot;</span> <span class="s2">&quot;True&quot;</span>
+<span class="lineno">11</span> EndSection</code></pre></div>
+
+<p>Note that this config file is only needed by the egpu and should only reference the bus and device id of the egpu with the allow external gpus option set.</p>
+
+<ul>
+  <li>Assuming we are using gnome desktop manager, we need to add the following to <code>/etc/X11/XWrapper.config</code>:</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> <span class="nv">needs_root_rights</span><span class="o">=</span>yes
+<span class="lineno">2</span> <span class="nv">allowed_users</span><span class="o">=</span>console</code></pre></div>
+
+<p>Run <code>sudo dpkg_reconfigure xserver-xorg-legacy</code>. Select the console users option to run as root when presented with the screen.</p>
+
+<p>This is to allow gdm3 to load the device driver as root else you will encounter errors such as <code>/usr/lib/gdm3/gdm-x-session[2866]: (EE) NVIDIA(GPU-1): Failed to initialize the NVIDIA GPU at PCI</code>.</p>
+
+<p>This does not apply if you are using other desktop managers such as lightdm.</p>
+
+<ul>
+  <li>Leave the egpu connected and reboot the system. If all goes well, you should be able to login through the desktop manager. Checking with <code>nvidia-smi</code> you should see the external egpu loaded and connected.</li>
+</ul>
+
+<p><img src="/assets/img/egpu/egpu_authorized.png" alt="Output of nvidia-smi" />
+<img src="/assets/img/egpu/egpu_nvidia_smi.png" alt="Output of nvidia-smi query" /></p>
+
+<h3 id="caveats">Caveats</h3>
+
+<p>Linux does not support hot-swapping of eGPU devices which means you need to deactivate the X11 config if you are not using the eGPU and reactivate it when you do. </p>
+
+<p>I find the easiest way to do so is to wrap the above into a script which renames the config file when you want to use the eGPU and then reboot the system. </p>
+
+<p>An example called <code>activate_egpu.sh</code> is as follows:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> <span class="c">#!/bin/bash</span>
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="nb">echo</span> <span class="s2">&quot;Activates EGPU script in /etc/X11/egpu.conf&quot;</span><span class="p">;</span>
+<span class="lineno">4</span> sudo prime-select nvidia
+<span class="lineno">5</span> sudo mv /etc/X11/egpu.conf.backup /etc/X11/egpu.conf</code></pre></div>
+
+<p>Make sure you reboot the system with the eGPU plugged in still before the changes will take effect. Other articles reference logging in/out as the current user but it doesn’t work in my instance.</p>
+
+<p>It is important to move/rename the egpu config file under <code>/etc/X11</code> back else the system will display a black screen upon reboot.</p>
+
+<p>Another script such as <code>deactivate_egpu.sh</code> can be used to do the reverse. Run the following script then disconnect/unplug the eGPU:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> <span class="c">#!/bin/bash</span>
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="nb">echo</span> <span class="s2">&quot;Deactivates EGPU script in /etc/X11/egpu.conf&quot;</span><span class="p">;</span>
+<span class="lineno">4</span> sudo prime-select nvidia<span class="p">;</span>
+<span class="lineno">5</span> sudo mv /etc/X11/egpu.conf /etc/X11/egpu.conf.backup</code></pre></div>
+
+<p>Reboot the system and it should return you to a single gpu desktop.</p>
+
+<p>Another area which is not covered and outside the scope of this article is the use of external displays. One might have to re-run <code>xrandr</code> in order to setup the displays properly.</p>
+
+<p>Following on this article, I hope to continue this thread with instructions on how to install cuda and tensorflow for machine learning development.</p>
+
+<p>Happy Hacking!</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

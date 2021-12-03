@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Auto renewal letsencrypt certs on CentOS 7 &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="How to setup auto renewal for letsencrypt on CentOS 7">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="certbot, devops, linux">
+    <link rel="canonical" href="https://cheeyeo.uk/linux/certbot/devops/2018/03/23/certbot-autorenewal/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Auto renewal letsencrypt certs on CentOS 7">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/linux/certbot/devops/2018/03/23/certbot-autorenewal/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Auto renewal letsencrypt certs on CentOS 7</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">March 23, 2018</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/certbot">certbot</a>
+      </li>
+      
+      <li>
+        <a href="/categories/devops">devops</a>
+      </li>
+      
+      <li>
+        <a href="/categories/linux">linux</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>In a previous article, I documented how to setup certbot on a centos 7 server. Since all letsencrypt certs have a limited lifespan of 3 months, its important to understand and be able to automate the renewal of the certs using certbot without any downtime if possible.</p>
+
+<p>Certbot has built-in plugins for common server types such as nginx and apache to aid with the renewal process. Assuming you followed the setup instructions on the letsencrypt setup docs for centos, you would have installed <code>certbot-nginx</code> using <code>sudo yum install certbot-nginx</code>.</p>
+
+<p>There are a few problems I have with the above approach:</p>
+
+<ul>
+  <li>
+    <p>The purpose or role of certbot is to obtain and renew the certs. Giving it control over your server process and configuration means increasing the attack surface vector in the event that there is a security issue with certbot.</p>
+  </li>
+  <li>
+    <p>The plugin overwrites the server configs based on where the letsencrypt certs are stored. This presents a problem if you have custom configs and need to have custom paths for the certs.</p>
+  </li>
+  <li>
+    <p>The plugin also links to its own server configs within your own configs which doesn’t make sense. For example, in the certbot-nginx plugin above, it adds an additional line to the main <code>/etc/nginx/nginx.conf</code> file with an import to <code>/etc/letsencrypt/le_tls_sni_01_cert_challenge.conf</code> which contains another server block that imports certs from <code>/var/lib/letsencrypt</code> folder. This caused the nginx server to respond with an error when <code>ssl_stapling</code> is on as it referenced a cert which doesn’t have the right CA, triggering a warning about invalid certs for ssl_stapling.</p>
+  </li>
+  <li>
+    <p>Last but not least, when run together with certbot using the –nginx option, it fails with various different errors, even when running with an actual working version of certbot in virtualenv, which is baffling to work out.</p>
+  </li>
+</ul>
+
+<p>For those reasons above and my sanity, I decided to look into how we can still automate the renewal process. Certbot accepts a webroot option which allows you to specify where the acme challenges can be stored. It also accepts a pre-hook argument which allows you to specify what happens after a successful renewal. Combining the two, this is what I come up with:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">sudo ~/mycertbot/bin/certbot renew --webroot -w /home/web/site/.well-known/acme-challenge --post-hook &quot;sudo systemctl restart nginx.service&quot;</span></code></pre></div>
+
+<p>The renew command checks and renews the certs for multiple domains if it has expired. This is important as letsencrypt impose rate limiting on their apis. The above assumes that you have already created the webroot directory.</p>
+
+<p>You would also need to add the corresponding entry into your server config to allow certbot to ping the path above. I added the below into my plain or port 80 nginx config server block:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">location ^~ /.well-known/acme-challenge/ {</span>
+<span class="lineno">2</span> <span class="go">  default_type &quot;text-plain&quot;;</span>
+<span class="lineno">3</span> <span class="go">  root /home/web/site/.well-known/acme-challenge;</span>
+<span class="lineno">4</span> <span class="go">}</span></code></pre></div>
+
+<p>Also, your server block for ssl config would need to be updated to point to where certbot stores the renewed certs. Assuming you have set it up, the first generated certs should be within <code>/etc/letsencrypt/live/mydomain.com</code>. Your ssl server config would need to be updated to reflect the letsencrypt paths. Below is an example of my ssl config:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">ssl_certificate /etc/letsencrypt/live/mydomain.com/fullchain.pem; # managed by Certbot</span>
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="go">ssl_certificate_key /etc/letsencrypt/live/mydomain.com/privkey.pem; # managed by Certbot</span>
+<span class="lineno">4</span> 
+<span class="lineno">5</span> <span class="go">ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;</span></code></pre></div>
+
+<p>To setup the auto renewal process, we need to call certbot with the renew subcommand in a cron task which runs twice a day. The following is my crontab entry within /etc/crontab:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">0 0,12 * * * root /home/web/mycertbot/bin/certbot --webroot -w /home/web/site/.well-known/acme-challenge --post-hook &quot;sudo systemctl restart nginx.service&quot; &gt;&gt; /home/web/certbot_renewal.log 2&gt;&amp;1</span></code></pre></div>
+
+<p>I redirected the output to a logfile so I can check for its status. I have also used the post-hook argument to restart nginx once the process completes successfully. The task is set to run twice a day at midnight and 12 noon.</p>
+
+<p>Lastly, ensure that the system cron service is running:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">sudo systemctl start crond.service</span>
+<span class="lineno">2</span> 
+<span class="lineno">3</span> <span class="go">sudo systemctl status crond.service -l</span></code></pre></div>
+
+<p>You can also run the same commands above using the dry-run flag to test it out before you set it as a cron job.</p>
+
+<p>I hope I have presented an approach for renewing the letsencrypt certs without having to use an external plugin to manage the server resource. Happy hacking</p>
+
+<h3 id="resources">Resources</h3>
+<ul>
+  <li>
+    <p><a href="https://certbot.eff.org/docs/using.html#webroot">Webroot plugin</a></p>
+  </li>
+  <li>
+    <p><a href="https://certbot.eff.org/docs/using.html#re-creating-and-updating-existing-certificates">Certbot Managing Certificates</a></p>
+  </li>
+  <li>
+    <p><a href="https://certbot.eff.org/docs/using.html#pre-and-post-validation-hooks">Pre and post validation hooks</a></p>
+  </li>
+</ul>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

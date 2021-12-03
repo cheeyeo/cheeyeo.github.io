@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Ruby type coercions &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="How to convert between types in Ruby">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="ruby">
+    <link rel="canonical" href="https://cheeyeo.uk/ruby/2016/08/30/ruby-try-convert/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Ruby type coercions">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/ruby/2016/08/30/ruby-try-convert/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Ruby type coercions</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">August 30, 2016</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/ruby">ruby</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  <p>When developing in Ruby, we may have to convert our own custom objects into one of the built-in system types.</p>
+
+<p>Ruby has built-in support for conversion protocols. By that, it means Ruby allows an object of a class to have itself converted to an object of another class.</p>
+
+<p>Ruby supports three main modes of type conversions: <code>lenient</code>, <code>strict</code>, <code>numeric</code>. We will discuss the first two forms of conversions in this post.</p>
+
+<p>When you call <code>to_s</code> or <code>to_i</code> on a receiver, Ruby looks for an equivalent representation
+in the receiver. For instance, calling <code>to_s</code> on any class which does not implement a custom <code>to_s</code> method will return just the class name followed by the object ID as a string.</p>
+
+<p>Sometimes, <code>strict</code> conversions are necessary in order to use our custom objects interchangeably with the built-in system types - we need our custom objects to work together with the core system types.</p>
+
+<p>This is when the <code>strict conversion</code> functions from the standard library comes in handy.</p>
+
+<p>Below is a list of these predefined system methods and their corresponding conversions:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="nb">to_a</span>      <span class="o">-&gt;</span>  <span class="nb">Array</span>
+
+<span class="n">to_ary</span>    <span class="o">-&gt;</span>  <span class="nb">Array</span>
+
+<span class="n">to_enum</span>   <span class="o">-&gt;</span>  <span class="no">Enumerator</span>
+
+<span class="n">to_hash</span>   <span class="o">-&gt;</span>  <span class="no">Hash</span>
+
+<span class="n">to_int</span>    <span class="o">-&gt;</span>  <span class="nb">Integer</span>
+
+<span class="n">to_io</span>     <span class="o">-&gt;</span>  <span class="no">IO</span>
+
+<span class="n">to_open</span>   <span class="o">-&gt;</span>  <span class="no">IO</span>
+
+<span class="n">to_path</span>   <span class="o">-&gt;</span>  <span class="nb">String</span>
+
+<span class="n">to_proc</span>   <span class="o">-&gt;</span>  <span class="no">Proc</span>
+
+<span class="n">to_regexp</span> <span class="o">-&gt;</span>  <span class="no">Regexp</span>
+
+<span class="n">to_str</span>    <span class="o">-&gt;</span>  <span class="nb">String</span>
+
+<span class="n">to_sym</span>    <span class="o">-&gt;</span>  <span class="no">Symbol</span></code></pre></div>
+
+<p>Some of the Ruby built-in classes such as Array, Hash, Regexp, String support the <code>try_convert</code> method call, which tries to transform the object passed as its argument into the corresponding type.</p>
+
+<p>When <code>try_convert</code> is invoked on an object, the type it is to be converted to looks for the associated method call in the list above in order to determine how the conversion is to occur.</p>
+
+<p>Below is an example of transforming a custom class of type Alphabet into an array by implementing <code>to_ary</code>:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="k">class</span> <span class="nc">Alphabet</span>
+<span class="lineno">2</span>   <span class="k">def</span> <span class="nf">to_a</span>
+<span class="lineno">3</span>     <span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="o">.</span><span class="n">.</span><span class="s1">&#39;z&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to_a</span>
+<span class="lineno">4</span>   <span class="k">end</span>
+<span class="lineno">5</span> <span class="k">end</span>
+<span class="lineno">6</span> 
+<span class="lineno">7</span> <span class="n">res</span> <span class="o">=</span> <span class="nb">Array</span><span class="o">.</span><span class="n">try_convert</span><span class="p">(</span><span class="no">Alphabet</span><span class="o">.</span><span class="n">new</span><span class="p">)</span> <span class="c1"># =&gt; calls to_ary on class A</span>
+<span class="lineno">8</span> <span class="nb">puts</span> <span class="n">res</span><span class="o">.</span><span class="n">class</span> <span class="c1"># =&gt; Array</span>
+<span class="lineno">9</span> <span class="nb">puts</span> <span class="n">res</span> <span class="c1"># =&gt; [&#39;a&#39;, &#39;b&#39;, &#39;c&#39;,...,&#39;z&#39;]</span></code></pre></div>
+
+<p>This allows the use of the Alphabet class interchangeably when an array is expected.</p>
+
+<p>However, we are not limited to just a single implementation.</p>
+
+<p>Taking the example above, if we need to extend the conversions to the other classes, we can also add the other corresponding methods:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">Alphabet</span>
+<span class="lineno"> 2</span>   <span class="k">def</span> <span class="nf">alpha_range</span>
+<span class="lineno"> 3</span>     <span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="o">.</span><span class="n">.</span><span class="s1">&#39;z&#39;</span><span class="p">)</span>
+<span class="lineno"> 4</span>   <span class="k">end</span>
+<span class="lineno"> 5</span> 
+<span class="lineno"> 6</span>   <span class="c1"># returns array of alphabets</span>
+<span class="lineno"> 7</span>   <span class="k">def</span> <span class="nf">to_ary</span>
+<span class="lineno"> 8</span>     <span class="n">alpha_range</span><span class="o">.</span><span class="n">to_a</span>
+<span class="lineno"> 9</span>   <span class="k">end</span>
+<span class="lineno">10</span> 
+<span class="lineno">11</span>   <span class="c1"># returns hash of alphabet as key and its position as value</span>
+<span class="lineno">12</span>   <span class="k">def</span> <span class="nf">to_hash</span>
+<span class="lineno">13</span>     <span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="o">.</span><span class="n">.</span><span class="s1">&#39;z&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">each_with_object</span><span class="p">({}){</span> <span class="o">|</span><span class="n">alpha</span><span class="p">,</span> <span class="n">hsh</span><span class="o">|</span>
+<span class="lineno">14</span>       <span class="n">hsh</span><span class="o">[</span><span class="n">alpha</span><span class="o">]</span> <span class="o">=</span> <span class="n">alpha_range</span><span class="o">.</span><span class="n">find_index</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+<span class="lineno">15</span>     <span class="p">}</span>
+<span class="lineno">16</span>   <span class="k">end</span>
+<span class="lineno">17</span> 
+<span class="lineno">18</span>   <span class="c1"># returns string of all alphabets concatenated</span>
+<span class="lineno">19</span>   <span class="k">def</span> <span class="nf">to_str</span>
+<span class="lineno">20</span>     <span class="nb">self</span><span class="o">.</span><span class="n">to_ary</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+<span class="lineno">21</span>   <span class="k">end</span>
+<span class="lineno">22</span> 
+<span class="lineno">23</span>   <span class="c1"># calls to_str to return a Regexp</span>
+<span class="lineno">24</span>   <span class="k">def</span> <span class="nf">to_regexp</span>
+<span class="lineno">25</span>     <span class="no">Regexp</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+<span class="lineno">26</span>   <span class="k">end</span>
+<span class="lineno">27</span> 
+<span class="lineno">28</span>   <span class="c1"># returns number of alphabets in range</span>
+<span class="lineno">29</span>   <span class="k">def</span> <span class="nf">to_int</span>
+<span class="lineno">30</span>     <span class="n">alpha_range</span><span class="o">.</span><span class="n">count</span>
+<span class="lineno">31</span>   <span class="k">end</span>
+<span class="lineno">32</span> <span class="k">end</span>
+<span class="lineno">33</span> 
+<span class="lineno">34</span> <span class="n">alphabets</span> <span class="o">=</span> <span class="no">Alphabet</span><span class="o">.</span><span class="n">new</span>
+<span class="lineno">35</span> 
+<span class="lineno">36</span> <span class="nb">Array</span><span class="o">.</span><span class="n">try_convert</span><span class="p">(</span><span class="n">alphabets</span><span class="p">)</span> <span class="c1"># =&gt; [&#39;a&#39;, &#39;b&#39;, &#39;c&#39;,...,&#39;z&#39;]</span>
+<span class="lineno">37</span> 
+<span class="lineno">38</span> <span class="no">Hash</span><span class="o">.</span><span class="n">try_convert</span><span class="p">(</span><span class="n">alphabets</span><span class="p">)</span> <span class="c1"># =&gt; {&quot;a&quot;=&gt;0, &quot;b&quot;=&gt;1, &quot;c&quot;=&gt;2, ..., &quot;z&quot; =&gt; 25}</span>
+<span class="lineno">39</span> 
+<span class="lineno">40</span> <span class="nb">String</span><span class="o">.</span><span class="n">try_convert</span><span class="p">(</span><span class="n">alphabets</span><span class="p">)</span> <span class="c1"># =&gt; &#39;a b c ... z&#39;</span>
+<span class="lineno">41</span> 
+<span class="lineno">42</span> <span class="no">Regexp</span><span class="o">.</span><span class="n">try_convert</span><span class="p">(</span><span class="n">alphabets</span><span class="p">)</span> <span class="c1"># =&gt; /a b c .... z/</span>
+<span class="lineno">43</span> 
+<span class="lineno">44</span> <span class="nb">Integer</span><span class="p">(</span><span class="n">alphabets</span><span class="p">)</span>            <span class="c1"># =&gt; 26</span></code></pre></div>
+
+<p>Keep hacking and stay curious!</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Guide to installing CUDA on Ubuntu 18.04 LTS &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Pain-free guide to installing CUDA 11">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="cuda, machine-learning, mlops">
+    <link rel="canonical" href="https://cheeyeo.uk/cuda/machine-learning/mlops/2021/10/27/guide-to-installing-cuda/">
+
+    <!-- Fonts -->
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
+
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Guide to installing CUDA on Ubuntu 18.04 LTS">
+    <meta property="og:description" content="Chee Yeo is a machine learning developer and AWS Solutions Architect Associate from the UK.">
+    <meta property="og:url" content="/cuda/machine-learning/mlops/2021/10/27/guide-to-installing-cuda/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Guide to installing CUDA on Ubuntu 18.04 LTS</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">October 27, 2021</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/cuda">cuda</a>
+      </li>
+      
+      <li>
+        <a href="/categories/machine-learning">machine-learning</a>
+      </li>
+      
+      <li>
+        <a href="/categories/mlops">mlops</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  
+<p>This guide attempts to highlight a process of installing CUDA 11 on UBUNTU 18.04 LTS.</p>
+
+<p>This post is inspired by the following <a href="https://www.pyimagesearch.com/2019/12/09/how-to-install-tensorflow-2-0-on-ubuntu/" target="_blank">blog post on pyimagesearch on installing Tensorflow 2.0</a>.</p>
+
+<p>Its not by any means a comprehensive guide as hardware differs but it aims to hopefully get you up and running asap.</p>
+
+<p>The steps documented below applies for both new installs or to update an existing CUDA install.</p>
+
+<h3 id="hardware-and-operating-system-tested">Hardware and operating system tested</h3>
+
+<p>Ubuntu 18.04 LTS with GeForce GTX 1060</p>
+
+<h3 id="pre-install-step">Pre-install step</h3>
+
+<p>Update and install system dependencies:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">sudo apt update &amp;&amp; sudo apt upgrade</span>
+
+<span class="go">sudo apt install build-essential \</span>
+<span class="go">cmake \</span>
+<span class="go">unzip \</span>
+<span class="go">pkg-config \</span>
+<span class="go">gcc-7 \</span>
+<span class="go">g++-7 \</span>
+<span class="go">libopenblas-dev \</span>
+<span class="go">libatlas-base-dev \</span>
+<span class="go">liblapack-dev \</span>
+<span class="go">gfortran \</span>
+<span class="go">python3-dev \</span>
+<span class="go">python3-tk \</span>
+<span class="go">python-imaging-tk</span></code></pre></div>
+
+<h3 id="update--install-nvidia-device-driver">Update / Install nvidia device driver</h3>
+
+<p>Add PPA for nvidia device drivers and install <strong>nvidia-driver-470</strong></p>
+
+<p>CUDA 11.3 only works for versions of device drivers &gt;= 465. </p>
+
+<p>Note: for Ubuntu, the 465 driver is linked to the 470 driver so there is no dedicated 465 version</p>
+
+<p>Install device driver:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">sudo add-apt-repository ppa:graphics-drivers/ppa</span>
+
+<span class="go">sudo apt-get install nvidia-driver-470</span></code></pre></div>
+
+<p>After install/update, reboot the system.</p>
+
+<p>Check that the device driver is working by running nvidia-smi</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">nvidia-smi</span></code></pre></div>
+
+<p>If it works, you should see the device driver version and the GPU hardware in the display.</p>
+
+<p>As an additional sanity check, you can also bring up <strong>NVIDIA Xserver settings</strong> and check that it has picked up the right device driver version and GPU.</p>
+
+<p>Note that the nvidia-smi utility is installed through the drivers and is independent of CUDA.</p>
+
+<h3 id="installing-cuda">Installing CUDA</h3>
+
+<p>For the purposes of this guide we are installing CUDA 11.3 in order to install and run tensorflow 2.6.0. This is to overcome the issue of the missing <strong>libcudart.11.0</strong> library.</p>
+
+<p>For CUDA 11.3, you need the device driver to be at least &gt;= 465, hence we installed 470 of the driver above.</p>
+
+<p>Easiest way to install CUDA is to download and run the installer.</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">wget https://developer.download.nvidia.com/compute/cuda/11.3.0/local_installers/cuda_11.3.0_465.19.01_linux.run</span>
+
+<span class="go">chmod +x cuda_11.3.0_465.19.01_linux.run</span>
+
+<span class="go">sudo ./cuda_11.3.0_465.19.01_linux.run --override</span></code></pre></div>
+
+<p>This will bring up an install screen. <strong>Uncheck</strong> the 465 driver option. This is <strong>IMPORTANT</strong> else it will corrupt the device driver since we have already installed it in step 1.</p>
+
+<p>Keep the remaining options as it is.</p>
+
+<p>After installation, it will copy the cuda libs to <code>/usr/local/cuda-11.3</code> and makes a symlink to <code>/usr/local/cuda</code></p>
+
+<p>To check that cuda is installed, run <strong>nvcc</strong> compiler:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">nvcc --version</span></code></pre></div>
+
+<p>Note that the CUDA version reported in nvidia-smi will not match the current installed version.</p>
+
+<p>Update <strong>~/.bashrc</strong> by setting the LD_PATH and PATH variables for cuda:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">export PATH=/usr/local/cuda/bin:$PATH</span>
+<span class="go">export LD_LIBRARY_PATH=/usr/local/cuda/lib64</span></code></pre></div>
+
+<h3 id="install-cudnn">Install CUDNN</h3>
+
+<p>The CUDNN library is required by tensorflow.</p>
+
+<p>The approach I took was to install using the deb file from the nvidia cuda repo. The version of libcudnn after the <strong>+</strong> symbol has to match with the installed cuda version.</p>
+
+<p>For example, if we have cuda 11.3 then we need to install the deb files with <strong>..+cuda11.3..</strong> in the suffix.</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libcudnn8_8.2.1.32-1+cuda11.3_amd64.deb</span>
+
+<span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libcudnn8-dev_8.2.1.32-1+cuda11.3_amd64.deb</span>
+
+<span class="go">sudo dpkg -i libcudnn8_8.2.1.32-1+cuda11.3_amd64.deb</span>
+
+<span class="go">sudo dpkg -i libcudnn8-dev_8.2.1.32-1+cuda11.3_amd64.deb</span>
+
+<span class="go">sudo ldconfig</span></code></pre></div>
+
+<p><strong>NOTE:</strong> You need to ensure that you don’t have existing versions of CUDNN before installing a newer version. TF will pick up the older version and will throw a <code>mismatch CUDNN version</code> error during invocation.</p>
+
+<h3 id="install-tensorrt-libs">Install TensorRT libs</h3>
+
+<p>To run TensorRT, we need to install the libnvinfer libraries. These would require cuda-nvrtc libraries as dependencies else the install would fail.</p>
+
+<p>Again, ensure that the cuda versions in the filenames match the actual installed cuda version.</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-nvrtc-11-3_11.3.58-1_amd64.deb</span>
+
+<span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-nvrtc-dev-11-3_11.3.58-1_amd64.deb</span>
+
+<span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libnvinfer8_8.0.3-1+cuda11.3_amd64.deb</span>
+
+<span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libnvinfer-dev_8_8.0.3-1+cuda11.3_amd64.deb</span>
+
+<span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libnvinfer-plugin8_8.0.3-1+cuda11.3_amd64.deb</span>
+
+<span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libnvinfer-plugin-dev_8_8.0.3-1+cuda11.3_amd64.deb</span>
+
+<span class="go">sudo dpkg -i cuda-nvrtc-11-3_11.3.58-1_amd64.deb \</span>
+<span class="go">cuda-nvrtc-dev-11-3_11.3.58-1_amd64.deb \</span>
+<span class="go">libnvinfer8_8.0.3-1+cuda11.3_amd64.deb \</span>
+<span class="go">libnvinfer-dev_8_8.0.3-1+cuda11.3_amd64.deb \</span>
+<span class="go">libnvinfer-plugin8_8.0.3-1+cuda11.3_amd64.deb \</span>
+<span class="go">libnvinfer-plugin-dev_8_8.0.3-1+cuda11.3_amd64.deb</span>
+
+<span class="go">sudo ldconfig</span></code></pre></div>
+
+<h3 id="install-tensorflow">Install Tensorflow</h3>
+
+<p>I tend to create a venv to test any new install of tensorflow as it has multiple dependencies which may or may not conflict with existing packages.</p>
+
+<p>Firstly, we need to export the LD_PATH to include CUPTI from CUDA. Then we create a venv and install tensorflow:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><a name="True-1"></a><span class="n">export</span> <span class="n">LD_LIBRARY_PATH</span><span class="o">=</span><span class="err">$</span><span class="n">LD_LIBRARY_PATH</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">cuda</span><span class="o">/</span><span class="n">extras</span><span class="o">/</span><span class="n">CUPTI</span><span class="o">/</span><span class="n">lib64</span>
+<a name="True-2"></a>
+<a name="True-3"></a><span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">venv</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">venv</span>
+<a name="True-4"></a>
+<a name="True-5"></a><span class="n">source</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">venv</span> <span class="n">activate</span>
+<a name="True-6"></a>
+<a name="True-7"></a><span class="n">pip</span> <span class="n">install</span> <span class="n">tensorflow</span><span class="o">==</span><span class="mf">2.6</span><span class="o">.</span><span class="mi">0</span></code></pre></div>
+
+<h3 id="test-tensorflow-install">Test tensorflow install</h3>
+
+<p>While still in activated venv, run following test script:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><a name="True-1"></a><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="kn">as</span> <span class="nn">tf</span>
+<a name="True-2"></a>
+<a name="True-3"></a><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+<a name="True-4"></a>    <span class="k">print</span><span class="p">(</span><span class="s">&quot;[INFO] Checking TF Gpu installed ...&quot;</span><span class="p">)</span>
+<a name="True-5"></a>    <span class="k">print</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">list_physical_devices</span><span class="p">(</span><span class="s">&quot;GPU&quot;</span><span class="p">))</span>
+<a name="True-6"></a>    <span class="k">print</span><span class="p">(</span><span class="s">&quot;TF VERSION: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">__version__</span><span class="p">))</span>
+<a name="True-7"></a>
+<a name="True-8"></a>    <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">set_log_device_placement</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+<a name="True-9"></a>
+<a name="True-10"></a>    <span class="n">a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]])</span>
+<a name="True-11"></a>    <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]])</span>
+<a name="True-12"></a>    <span class="n">c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+<a name="True-13"></a>
+<a name="True-14"></a>    <span class="k">print</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></code></pre></div>
+
+<p>If all goes well, should see output similar to this:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><a name="True-1"></a><span class="o">....</span>
+<a name="True-2"></a>
+<a name="True-3"></a><span class="p">[</span><span class="n">PhysicalDevice</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;/physical_device:GPU:0&#39;</span><span class="p">,</span> <span class="n">device_type</span><span class="o">=</span><span class="s">&#39;GPU&#39;</span><span class="p">)]</span>
+<a name="True-4"></a>
+<a name="True-5"></a><span class="n">TF</span> <span class="n">VERSION</span><span class="p">:</span> <span class="mf">2.6</span><span class="o">.</span><span class="mi">0</span>
+<a name="True-6"></a>
+<a name="True-7"></a><span class="o">....</span>
+<a name="True-8"></a>
+<a name="True-9"></a><span class="mi">2021</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">15</span><span class="p">:</span><span class="mo">01</span><span class="p">:</span><span class="mf">45.114704</span><span class="p">:</span> <span class="n">I</span> <span class="n">tensorflow</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">common_runtime</span><span class="o">/</span><span class="n">gpu</span><span class="o">/</span><span class="n">gpu_device</span><span class="o">.</span><span class="n">cc</span><span class="p">:</span><span class="mi">1510</span><span class="p">]</span> <span class="n">Created</span> <span class="n">device</span> <span class="o">/</span><span class="n">job</span><span class="p">:</span><span class="n">localhost</span><span class="o">/</span><span class="n">replica</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">task</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">device</span><span class="p">:</span><span class="n">GPU</span><span class="p">:</span><span class="mi">0</span> <span class="k">with</span> <span class="mi">5018</span> <span class="n">MB</span> <span class="n">memory</span><span class="p">:</span>  <span class="o">-&gt;</span> <span class="n">device</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">NVIDIA</span> <span class="n">GeForce</span> <span class="n">GTX</span> <span class="mi">1060</span> <span class="k">with</span> <span class="n">Max</span><span class="o">-</span><span class="n">Q</span> <span class="n">Design</span><span class="p">,</span> <span class="n">pci</span> <span class="n">bus</span> <span class="nb">id</span><span class="p">:</span> <span class="mo">0000</span><span class="p">:</span><span class="mo">01</span><span class="p">:</span><span class="mf">00.0</span><span class="p">,</span> <span class="n">compute</span> <span class="n">capability</span><span class="p">:</span> <span class="mf">6.1</span>
+<a name="True-10"></a><span class="mi">2021</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">15</span><span class="p">:</span><span class="mo">01</span><span class="p">:</span><span class="mf">45.172025</span><span class="p">:</span> <span class="n">I</span> <span class="n">tensorflow</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">common_runtime</span><span class="o">/</span><span class="n">eager</span><span class="o">/</span><span class="n">execute</span><span class="o">.</span><span class="n">cc</span><span class="p">:</span><span class="mi">1161</span><span class="p">]</span> <span class="n">Executing</span> <span class="n">op</span> <span class="n">_EagerConst</span> <span class="ow">in</span> <span class="n">device</span> <span class="o">/</span><span class="n">job</span><span class="p">:</span><span class="n">localhost</span><span class="o">/</span><span class="n">replica</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">task</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">device</span><span class="p">:</span><span class="n">GPU</span><span class="p">:</span><span class="mi">0</span>
+<a name="True-11"></a><span class="mi">2021</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">15</span><span class="p">:</span><span class="mo">01</span><span class="p">:</span><span class="mf">45.172447</span><span class="p">:</span> <span class="n">I</span> <span class="n">tensorflow</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">common_runtime</span><span class="o">/</span><span class="n">eager</span><span class="o">/</span><span class="n">execute</span><span class="o">.</span><span class="n">cc</span><span class="p">:</span><span class="mi">1161</span><span class="p">]</span> <span class="n">Executing</span> <span class="n">op</span> <span class="n">_EagerConst</span> <span class="ow">in</span> <span class="n">device</span> <span class="o">/</span><span class="n">job</span><span class="p">:</span><span class="n">localhost</span><span class="o">/</span><span class="n">replica</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">task</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">device</span><span class="p">:</span><span class="n">GPU</span><span class="p">:</span><span class="mi">0</span>
+<a name="True-12"></a><span class="mi">2021</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">15</span><span class="p">:</span><span class="mo">01</span><span class="p">:</span><span class="mf">45.173005</span><span class="p">:</span> <span class="n">I</span> <span class="n">tensorflow</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">common_runtime</span><span class="o">/</span><span class="n">eager</span><span class="o">/</span><span class="n">execute</span><span class="o">.</span><span class="n">cc</span><span class="p">:</span><span class="mi">1161</span><span class="p">]</span> <span class="n">Executing</span> <span class="n">op</span> <span class="n">MatMul</span> <span class="ow">in</span> <span class="n">device</span> <span class="o">/</span><span class="n">job</span><span class="p">:</span><span class="n">localhost</span><span class="o">/</span><span class="n">replica</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">task</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">device</span><span class="p">:</span><span class="n">GPU</span><span class="p">:</span><span class="mi">0</span>
+<a name="True-13"></a><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span>
+<a name="True-14"></a><span class="p">[[</span><span class="mf">22.</span> <span class="mf">28.</span><span class="p">]</span>
+<a name="True-15"></a> <span class="p">[</span><span class="mf">49.</span> <span class="mf">64.</span><span class="p">]],</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">)</span></code></pre></div>
+
+<p>Important lines are <strong>device /job:localhost/replica:0/task:0/device:GPU:0</strong> which indicates that TF is able to locate and access the GPU device.</p>
+
+<h3 id="pre-built-docker-images">Pre-built docker images</h3>
+
+<p>An alternative is to run tensorflow locally using one of the <a href="https://hub.docker.com/r/tensorflow/tensorflow/tags" target="_blank">prebuilt Tensorflow docker image</a> and bind-mount a local directory into the running container:</p>
+
+<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">docker pull tensorflow/tensorflow:2.6.0</span>
+
+<span class="go">docker run --gpus all -it --rm -v &lt;source path&gt;:&lt;target container path&gt; --entrypoint /bin/bash tensorflow/tensorflow-gpu:2.6.0</span>
+
+<span class="go">cd &lt;target container path&gt;</span></code></pre></div>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://cheeyeo.uk/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:ckyeo.1@gmail.com"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2021 Chee Yeo<br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+
+  
+
+  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
+</body>
+</html>
