@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Using ActionMailer in Rails 4.2 wth sidekiq">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="actionmailer, activejob, rails, sidekiq">
-    <link rel="canonical" href="https://www.cheeyeo.dev/rails/actionmailer/activejob/sidekiq/2015/07/22/rails-42-actionmailer/">
+    <meta name="keywords" content="rails, actionmailer, activejob, sidekiq">
+    <link rel="canonical" href="http://localhost:4000/rails/actionmailer/activejob/sidekiq/2015/07/22/rails-42-actionmailer/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Rails 4.2 ActionMailer">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/rails/actionmailer/activejob/sidekiq/2015/07/22/rails-42-actionmailer/">
+    <meta property="og:url" content="http://localhost:4000/rails/actionmailer/activejob/sidekiq/2015/07/22/rails-42-actionmailer/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -67,15 +67,15 @@
     <ul class="article-tag">
       
       <li>
+        <a href="/categories/rails">rails</a>
+      </li>
+      
+      <li>
         <a href="/categories/actionmailer">actionmailer</a>
       </li>
       
       <li>
         <a href="/categories/activejob">activejob</a>
-      </li>
-      
-      <li>
-        <a href="/categories/rails">rails</a>
       </li>
       
       <li>
@@ -99,8 +99,11 @@
 
 <p>ActionMailer now comes with two additional methods:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="n">deliver_later</span>
-<span class="lineno">2</span> <span class="n">deliver_now</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+</pre></td><td class="code"><pre><span class="n">deliver_later</span>
+<span class="n">deliver_now</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p><strong>deliver_now</strong> is similar to the original deliver method; it sends the email synchronously.</p>
 
@@ -116,22 +119,33 @@
 
 <p>This assumes that you have <strong>config.active_job.queue_adapter</strong> set like so:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="c1"># within config/application.rb</span>
-<span class="lineno">2</span> 
-<span class="lineno">3</span> <span class="n">config</span><span class="o">.</span><span class="n">active_job</span><span class="o">.</span><span class="n">queue_adapter</span> <span class="o">=</span> <span class="ss">:sidekiq</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+</pre></td><td class="code"><pre><span class="c1"># within config/application.rb</span>
+
+<span class="n">config</span><span class="p">.</span><span class="nf">active_job</span><span class="p">.</span><span class="nf">queue_adapter</span> <span class="o">=</span> <span class="ss">:sidekiq</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Next you need to add the <strong>‘mailers’</strong> queue into the config file. ActionMailer by default places background deliveries into this queue.</p>
 
 <p>For sidekiq:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="c1"># config/sidekiq.yml</span>
-<span class="lineno">2</span> 
-<span class="lineno">3</span> <span class="ss">:queues</span><span class="p">:</span>
-<span class="lineno">4</span>   <span class="o">-</span> <span class="o">[</span><span class="n">mailers</span><span class="p">,</span> <span class="mi">1</span><span class="o">]</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+</pre></td><td class="code"><pre><span class="c1"># config/sidekiq.yml</span>
+
+<span class="ss">:queues</span><span class="p">:</span>
+  <span class="o">-</span> <span class="p">[</span><span class="n">mailers</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Create a mailer and call deliver_later and if it all goes well you should see the below in your log file:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="o">[</span><span class="no">ActiveJob</span><span class="o">]</span> <span class="o">[</span><span class="no">ActionMailer</span><span class="o">::</span><span class="no">DeliveryJob</span><span class="o">]</span> <span class="o">[</span><span class="n">fd25b472</span><span class="o">-</span><span class="mi">9</span><span class="n">d80</span><span class="o">-</span><span class="mi">47</span><span class="n">f2</span><span class="o">-</span><span class="mi">9</span><span class="n">ea6</span><span class="o">-</span><span class="mi">5</span><span class="n">da0e3cf7552</span><span class="o">]</span> <span class="no">Performed</span> <span class="no">ActionMailer</span><span class="o">::</span><span class="no">DeliveryJob</span> <span class="n">from</span> <span class="no">Sidekiq</span><span class="p">(</span><span class="n">mailers</span><span class="p">)</span> <span class="k">in</span> <span class="mi">3160</span><span class="o">.</span><span class="mi">77</span><span class="n">ms</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+</pre></td><td class="code"><pre><span class="p">[</span><span class="no">ActiveJob</span><span class="p">]</span> <span class="p">[</span><span class="no">ActionMailer</span><span class="o">::</span><span class="no">DeliveryJob</span><span class="p">]</span> <span class="p">[</span><span class="n">fd25b472</span><span class="o">-</span><span class="mi">9</span><span class="n">d80</span><span class="o">-</span><span class="mi">47</span><span class="n">f2</span><span class="o">-</span><span class="mi">9</span><span class="n">ea6</span><span class="o">-</span><span class="mi">5</span><span class="n">da0e3cf7552</span><span class="p">]</span> <span class="no">Performed</span> <span class="no">ActionMailer</span><span class="o">::</span><span class="no">DeliveryJob</span> <span class="n">from</span> <span class="no">Sidekiq</span><span class="p">(</span><span class="n">mailers</span><span class="p">)</span> <span class="k">in</span> <span class="mf">3160.77</span><span class="n">ms</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <h1 id="tracking-exceptions">Tracking exceptions</h1>
 
@@ -139,50 +153,93 @@
 
 <p>To be notified of when an exception occurs, we can hook into sidekiq eror handlers like so:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="c1"># config/initializers/sidekiq.rb</span>
-<span class="lineno"> 2</span> <span class="no">Sidekiq</span><span class="o">.</span><span class="n">configure_server</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
-<span class="lineno"> 3</span>   <span class="n">config</span><span class="o">.</span><span class="n">error_handlers</span> <span class="o">&lt;&lt;</span> <span class="no">Proc</span><span class="o">.</span><span class="n">new</span> <span class="p">{</span><span class="o">|</span><span class="n">ex</span><span class="p">,</span><span class="n">ctx_hash</span><span class="o">|</span>
-<span class="lineno"> 4</span>     <span class="no">SidekiqError</span><span class="o">.</span><span class="n">log_exception</span><span class="p">(</span><span class="n">ex</span><span class="p">,</span> <span class="n">ctx_hash</span><span class="p">)</span>
-<span class="lineno"> 5</span>   <span class="p">}</span>
-<span class="lineno"> 6</span> <span class="k">end</span>
-<span class="lineno"> 7</span> 
-<span class="lineno"> 8</span> <span class="c1"># sidekiq_error.rb</span>
-<span class="lineno"> 9</span> 
-<span class="lineno">10</span> <span class="k">class</span> <span class="nc">SidekiqError</span>
-<span class="lineno">11</span>   <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">logger</span>
-<span class="lineno">12</span>     <span class="vi">@logger</span> <span class="o">||=</span> <span class="no">Logger</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">#{</span><span class="no">Rails</span><span class="o">.</span><span class="n">root</span><span class="si">}</span><span class="s2">/log/sidekiq.log&quot;</span><span class="p">)</span>
-<span class="lineno">13</span>   <span class="k">end</span>
-<span class="lineno">14</span> 
-<span class="lineno">15</span>   <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">log_exception</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
-<span class="lineno">16</span>     <span class="nb">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="s2">&quot;Error class: </span><span class="si">#{</span><span class="n">args</span><span class="o">[</span><span class="s2">&quot;error_class&quot;</span><span class="o">]</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="lineno">17</span>     <span class="nb">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="s2">&quot;Error message: </span><span class="si">#{</span><span class="n">args</span><span class="o">[</span><span class="s2">&quot;error_message&quot;</span><span class="o">]</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="lineno">18</span>     <span class="nb">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span>
-<span class="lineno">19</span>     <span class="n">st</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">backtrace</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="lineno">20</span> 
-<span class="lineno">21</span>     <span class="nb">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="n">st</span>
-<span class="lineno">22</span>     <span class="nb">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="s2">&quot;Failed At: </span><span class="si">#{</span><span class="n">args</span><span class="o">[</span><span class="s2">&quot;failed_at&quot;</span><span class="o">]</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="lineno">23</span>     <span class="nb">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="s2">&quot;Retry Count: </span><span class="si">#{</span><span class="n">args</span><span class="o">[</span><span class="s2">&quot;retry_count&quot;</span><span class="o">]</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="lineno">24</span>     <span class="nb">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span> <span class="s2">&quot;Retried At: </span><span class="si">#{</span><span class="n">args</span><span class="o">[</span><span class="s2">&quot;retried_at&quot;</span><span class="o">]</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="lineno">25</span>   <span class="k">end</span>
-<span class="lineno">26</span> <span class="k">end</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+</pre></td><td class="code"><pre><span class="c1"># config/initializers/sidekiq.rb</span>
+<span class="no">Sidekiq</span><span class="p">.</span><span class="nf">configure_server</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+  <span class="n">config</span><span class="p">.</span><span class="nf">error_handlers</span> <span class="o">&lt;&lt;</span> <span class="no">Proc</span><span class="p">.</span><span class="nf">new</span> <span class="p">{</span><span class="o">|</span><span class="n">ex</span><span class="p">,</span><span class="n">ctx_hash</span><span class="o">|</span>
+    <span class="no">SidekiqError</span><span class="p">.</span><span class="nf">log_exception</span><span class="p">(</span><span class="n">ex</span><span class="p">,</span> <span class="n">ctx_hash</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="k">end</span>
+
+<span class="c1"># sidekiq_error.rb</span>
+
+<span class="k">class</span> <span class="nc">SidekiqError</span>
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">logger</span>
+    <span class="vi">@logger</span> <span class="o">||=</span> <span class="no">Logger</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">"</span><span class="si">#{</span><span class="no">Rails</span><span class="p">.</span><span class="nf">root</span><span class="si">}</span><span class="s2">/log/sidekiq.log"</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">log_exception</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+    <span class="nb">self</span><span class="p">.</span><span class="nf">logger</span><span class="p">.</span><span class="nf">error</span> <span class="s2">"Error class: </span><span class="si">#{</span><span class="n">args</span><span class="p">[</span><span class="s2">"error_class"</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+    <span class="nb">self</span><span class="p">.</span><span class="nf">logger</span><span class="p">.</span><span class="nf">error</span> <span class="s2">"Error message: </span><span class="si">#{</span><span class="n">args</span><span class="p">[</span><span class="s2">"error_message"</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+    <span class="nb">self</span><span class="p">.</span><span class="nf">logger</span><span class="p">.</span><span class="nf">error</span> <span class="n">e</span><span class="p">.</span><span class="nf">message</span>
+    <span class="n">st</span> <span class="o">=</span> <span class="n">e</span><span class="p">.</span><span class="nf">backtrace</span><span class="p">.</span><span class="nf">join</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="nb">self</span><span class="p">.</span><span class="nf">logger</span><span class="p">.</span><span class="nf">error</span> <span class="n">st</span>
+    <span class="nb">self</span><span class="p">.</span><span class="nf">logger</span><span class="p">.</span><span class="nf">error</span> <span class="s2">"Failed At: </span><span class="si">#{</span><span class="n">args</span><span class="p">[</span><span class="s2">"failed_at"</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+    <span class="nb">self</span><span class="p">.</span><span class="nf">logger</span><span class="p">.</span><span class="nf">error</span> <span class="s2">"Retry Count: </span><span class="si">#{</span><span class="n">args</span><span class="p">[</span><span class="s2">"retry_count"</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+    <span class="nb">self</span><span class="p">.</span><span class="nf">logger</span><span class="p">.</span><span class="nf">error</span> <span class="s2">"Retried At: </span><span class="si">#{</span><span class="n">args</span><span class="p">[</span><span class="s2">"retried_at"</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>I still have not worked out a way to rescue exceptions within async mailers as the class is defined automatically in ActionMailer when you call deliver_later from your mailer:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="c1"># actionmailer/lib/action_mailer/delivery_job.rb</span>
-<span class="lineno"> 2</span> 
-<span class="lineno"> 3</span> <span class="nb">require</span> <span class="s1">&#39;active_job&#39;</span>
-<span class="lineno"> 4</span> 
-<span class="lineno"> 5</span> <span class="k">module</span> <span class="nn">ActionMailer</span>
-<span class="lineno"> 6</span>   <span class="c1"># The &lt;tt&gt;ActionMailer::DeliveryJob&lt;/tt&gt; class is used when you</span>
-<span class="lineno"> 7</span>   <span class="c1"># want to send emails outside of the request-response cycle.</span>
-<span class="lineno"> 8</span>   <span class="k">class</span> <span class="nc">DeliveryJob</span> <span class="o">&lt;</span> <span class="no">ActiveJob</span><span class="o">::</span><span class="no">Base</span> <span class="c1"># :nodoc:</span>
-<span class="lineno"> 9</span>     <span class="n">queue_as</span> <span class="p">{</span> <span class="no">ActionMailer</span><span class="o">::</span><span class="no">Base</span><span class="o">.</span><span class="n">deliver_later_queue_name</span> <span class="p">}</span>
-<span class="lineno">10</span> 
-<span class="lineno">11</span>     <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="n">mailer</span><span class="p">,</span> <span class="n">mail_method</span><span class="p">,</span> <span class="n">delivery_method</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="c1">#:nodoc:</span>
-<span class="lineno">12</span>       <span class="n">mailer</span><span class="o">.</span><span class="n">constantize</span><span class="o">.</span><span class="n">public_send</span><span class="p">(</span><span class="n">mail_method</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">delivery_method</span><span class="p">)</span>
-<span class="lineno">13</span>     <span class="k">end</span>
-<span class="lineno">14</span>   <span class="k">end</span>
-<span class="lineno">15</span> <span class="k">end</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+</pre></td><td class="code"><pre><span class="c1"># actionmailer/lib/action_mailer/delivery_job.rb</span>
+
+<span class="nb">require</span> <span class="s1">'active_job'</span>
+
+<span class="k">module</span> <span class="nn">ActionMailer</span>
+  <span class="c1"># The &lt;tt&gt;ActionMailer::DeliveryJob&lt;/tt&gt; class is used when you</span>
+  <span class="c1"># want to send emails outside of the request-response cycle.</span>
+  <span class="k">class</span> <span class="nc">DeliveryJob</span> <span class="o">&lt;</span> <span class="no">ActiveJob</span><span class="o">::</span><span class="no">Base</span> <span class="c1"># :nodoc:</span>
+    <span class="n">queue_as</span> <span class="p">{</span> <span class="no">ActionMailer</span><span class="o">::</span><span class="no">Base</span><span class="p">.</span><span class="nf">deliver_later_queue_name</span> <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="n">mailer</span><span class="p">,</span> <span class="n">mail_method</span><span class="p">,</span> <span class="n">delivery_method</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="c1">#:nodoc:</span>
+      <span class="n">mailer</span><span class="p">.</span><span class="nf">constantize</span><span class="p">.</span><span class="nf">public_send</span><span class="p">(</span><span class="n">mail_method</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">).</span><span class="nf">send</span><span class="p">(</span><span class="n">delivery_method</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>One approach would be to create a refinement for ActionMailer::MessageDelivery enqueue_delivery private method to use a custom ActiveJob object which has a rescue_from block but that is the topic of another blog post.</p>
 
@@ -206,7 +263,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -232,6 +289,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

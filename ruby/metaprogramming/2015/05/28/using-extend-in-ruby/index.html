@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Observations of using include and extend in Ruby">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="metaprogramming, ruby">
-    <link rel="canonical" href="https://www.cheeyeo.dev/ruby/metaprogramming/2015/05/28/using-extend-in-ruby/">
+    <meta name="keywords" content="ruby, metaprogramming">
+    <link rel="canonical" href="http://localhost:4000/ruby/metaprogramming/2015/05/28/using-extend-in-ruby/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Using extend in Ruby">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/ruby/metaprogramming/2015/05/28/using-extend-in-ruby/">
+    <meta property="og:url" content="http://localhost:4000/ruby/metaprogramming/2015/05/28/using-extend-in-ruby/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -67,11 +67,11 @@
     <ul class="article-tag">
       
       <li>
-        <a href="/categories/metaprogramming">metaprogramming</a>
+        <a href="/categories/ruby">ruby</a>
       </li>
       
       <li>
-        <a href="/categories/ruby">ruby</a>
+        <a href="/categories/metaprogramming">metaprogramming</a>
       </li>
       
     </ul>
@@ -90,13 +90,13 @@
   <p>In Ruby, it is possible to enhance the functionality of an existing object by
 including a module into a class using a mixin. It is commonplace to see code like this:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">module</span> <span class="nn">DateMethods</span>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">module</span> <span class="nn">DateMethods</span>
   <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">included</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
-    <span class="n">base</span><span class="o">.</span><span class="n">extend</span> <span class="no">ClassMethods</span>
+    <span class="n">base</span><span class="p">.</span><span class="nf">extend</span> <span class="no">ClassMethods</span>
   <span class="k">end</span>
 
   <span class="k">def</span> <span class="nf">calculate_interval</span>
-    <span class="p">(</span><span class="no">Date</span><span class="o">.</span><span class="n">today</span> <span class="o">-</span> <span class="vi">@elapsed_created</span><span class="p">)</span><span class="o">.</span><span class="n">to_i</span>
+    <span class="p">(</span><span class="no">Date</span><span class="p">.</span><span class="nf">today</span> <span class="o">-</span> <span class="vi">@elapsed_created</span><span class="p">).</span><span class="nf">to_i</span>
   <span class="k">end</span>
 
   <span class="k">module</span> <span class="nn">ClassMethods</span>
@@ -107,11 +107,11 @@ including a module into a class using a mixin. It is commonplace to see code lik
 <span class="k">class</span> <span class="nc">MyClass</span>
   <span class="kp">include</span> <span class="no">DateMethods</span>
 
-  <span class="kp">attr_accessor</span> <span class="ss">:started</span>
-  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="ss">date</span><span class="p">:)</span>
-    <span class="vi">@started</span> <span class="o">=</span> <span class="no">Date</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+  <span class="nb">attr_accessor</span> <span class="ss">:started</span>
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">date</span><span class="p">:)</span>
+    <span class="vi">@started</span> <span class="o">=</span> <span class="no">Date</span><span class="p">.</span><span class="nf">parse</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
   <span class="k">end</span>
-<span class="k">end</span></code></pre></div>
+<span class="k">end</span></code></pre></figure>
 
 <p>The example above is trivialized but hopefully helps to illustrate my observations.
 We have a module called <strong>‘DateMethods’</strong> which we are including into <strong>‘MyClass’</strong>.</p>
@@ -125,9 +125,9 @@ I can’t help but feel that this is not as syntactically pleasing as calling <s
 
 <p>Rewriting the example above but using <strong>‘extend’</strong> instead:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">module</span> <span class="nn">DateMethods</span>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">module</span> <span class="nn">DateMethods</span>
   <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">extended</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
-    <span class="n">base</span><span class="o">.</span><span class="n">include</span> <span class="no">InstanceMethods</span>
+    <span class="n">base</span><span class="p">.</span><span class="nf">include</span> <span class="no">InstanceMethods</span>
   <span class="k">end</span>
 
   <span class="c1"># class methods stay in the module body</span>
@@ -135,22 +135,22 @@ I can’t help but feel that this is not as syntactically pleasing as calling <s
 
   <span class="k">module</span> <span class="nn">InstanceMethods</span>
     <span class="k">def</span> <span class="nf">calculate_interval</span>
-      <span class="p">(</span><span class="no">Date</span><span class="o">.</span><span class="n">today</span> <span class="o">-</span> <span class="vi">@elapsed_created</span><span class="p">)</span><span class="o">.</span><span class="n">to_i</span>
+      <span class="p">(</span><span class="no">Date</span><span class="p">.</span><span class="nf">today</span> <span class="o">-</span> <span class="vi">@elapsed_created</span><span class="p">).</span><span class="nf">to_i</span>
     <span class="k">end</span>
   <span class="k">end</span>
 <span class="k">end</span>
 
 <span class="k">class</span> <span class="nc">MyClass</span>
-  <span class="kp">attr_accessor</span> <span class="ss">:started</span>
-  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="ss">date</span><span class="p">:)</span>
-    <span class="vi">@started</span> <span class="o">=</span> <span class="no">Date</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+  <span class="nb">attr_accessor</span> <span class="ss">:started</span>
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">date</span><span class="p">:)</span>
+    <span class="vi">@started</span> <span class="o">=</span> <span class="no">Date</span><span class="p">.</span><span class="nf">parse</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
   <span class="k">end</span>
 <span class="k">end</span>
 
-<span class="no">MyClass</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="no">DateMethods</span><span class="p">)</span>
-<span class="n">myclass</span> <span class="o">=</span> <span class="no">MyClass</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">date</span><span class="p">:</span> <span class="s2">&quot;2015-05-28&quot;</span><span class="p">)</span>
-<span class="nb">puts</span> <span class="n">myclass</span><span class="o">.</span><span class="n">calculate_interval</span> <span class="c1"># =&gt; 1</span>
-<span class="nb">puts</span> <span class="no">MyClass</span><span class="o">.</span><span class="n">interval</span> <span class="c1"># =&gt; 3</span></code></pre></div>
+<span class="no">MyClass</span><span class="p">.</span><span class="nf">extend</span><span class="p">(</span><span class="no">DateMethods</span><span class="p">)</span>
+<span class="n">myclass</span> <span class="o">=</span> <span class="no">MyClass</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="ss">date: </span><span class="s2">"2015-05-28"</span><span class="p">)</span>
+<span class="nb">puts</span> <span class="n">myclass</span><span class="p">.</span><span class="nf">calculate_interval</span> <span class="c1"># =&gt; 1</span>
+<span class="nb">puts</span> <span class="no">MyClass</span><span class="p">.</span><span class="nf">interval</span> <span class="c1"># =&gt; 3</span></code></pre></figure>
 
 <p>Ruby provides a callback <strong>‘extended’</strong> which gets invoked whenever the receiver is used to extend an object. Within the <strong>‘extended’</strong> callback, we then <strong>‘include’</strong> the instance methods.</p>
 
@@ -159,25 +159,25 @@ not be the intention if all you need is to have certain behavior at certain
 times. By using <strong>‘extend’</strong> on instances, we can achieve a kind of dynamic code
 loading:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">module</span> <span class="nn">Pagination</span>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">module</span> <span class="nn">Pagination</span>
   <span class="k">def</span> <span class="nf">paginate</span><span class="p">(</span><span class="n">page</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">items_per_page</span> <span class="o">=</span> <span class="n">size</span><span class="p">,</span> <span class="n">total_items</span> <span class="o">=</span> <span class="n">size</span><span class="p">)</span>
     <span class="vi">@page</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="vi">@items_per_page</span> <span class="o">=</span> <span class="n">items_per_page</span>
     <span class="vi">@total_items</span> <span class="o">=</span> <span class="n">total_items</span>
   <span class="k">end</span>
 
-  <span class="kp">attr_reader</span> <span class="ss">:page</span><span class="p">,</span> <span class="ss">:items_per_page</span><span class="p">,</span> <span class="ss">:total_items</span>
+  <span class="nb">attr_reader</span> <span class="ss">:page</span><span class="p">,</span> <span class="ss">:items_per_page</span><span class="p">,</span> <span class="ss">:total_items</span>
 
   <span class="k">def</span> <span class="nf">total_pages</span>
-    <span class="p">(</span><span class="n">total_items</span> <span class="o">/</span> <span class="n">items_per_page</span><span class="p">)</span><span class="o">.</span><span class="n">ceil</span>
+    <span class="p">(</span><span class="n">total_items</span> <span class="o">/</span> <span class="n">items_per_page</span><span class="p">).</span><span class="nf">ceil</span>
   <span class="k">end</span>
 
 <span class="k">end</span>
 
 <span class="n">collection</span> <span class="o">=</span> <span class="sx">%w[first second third]</span>
 
-<span class="n">collection</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="no">Pagination</span><span class="p">)</span>
-<span class="n">collection</span><span class="o">.</span><span class="n">paginate</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span></code></pre></div>
+<span class="n">collection</span><span class="p">.</span><span class="nf">extend</span><span class="p">(</span><span class="no">Pagination</span><span class="p">)</span>
+<span class="n">collection</span><span class="p">.</span><span class="nf">paginate</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span></code></pre></figure>
 
 <p>In the above example adapted from a <a href="http://graysoftinc.com/rubies-in-the-rough/learn-to-love-mix-ins" target="_blank">James Earl Gray article on mixins</a>, only the <strong>‘collection’</strong> object has the <strong>‘Pagination’</strong> module methods since the <strong>‘extend’</strong> is on the singleton/metaclass of <strong>‘collection’</strong> object itself, which restricts the scope of the <strong>‘Pagination’</strong> behavior to be contained and not affecting the entire class. We could just have easily swapped out <strong>‘Pagination’</strong> with another module at runtime.</p>
 
@@ -205,7 +205,7 @@ code.</p>
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -231,6 +231,8 @@ code.</p>
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="How to test API calls in Elixir using Meck">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="api, elixir, meck, test, unit">
-    <link rel="canonical" href="https://www.cheeyeo.dev/elixir/unit/test/meck/api/2015/01/01/testing-api-calls-meck/">
+    <meta name="keywords" content="elixir, unit, test, meck, api">
+    <link rel="canonical" href="http://localhost:4000/elixir/unit/test/meck/api/2015/01/01/testing-api-calls-meck/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Testing API Web Calls in Elixir using meck">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/elixir/unit/test/meck/api/2015/01/01/testing-api-calls-meck/">
+    <meta property="og:url" content="http://localhost:4000/elixir/unit/test/meck/api/2015/01/01/testing-api-calls-meck/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -67,15 +67,11 @@
     <ul class="article-tag">
       
       <li>
-        <a href="/categories/api">api</a>
-      </li>
-      
-      <li>
         <a href="/categories/elixir">elixir</a>
       </li>
       
       <li>
-        <a href="/categories/meck">meck</a>
+        <a href="/categories/unit">unit</a>
       </li>
       
       <li>
@@ -83,7 +79,11 @@
       </li>
       
       <li>
-        <a href="/categories/unit">unit</a>
+        <a href="/categories/meck">meck</a>
+      </li>
+      
+      <li>
+        <a href="/categories/api">api</a>
       </li>
       
     </ul>
@@ -105,43 +105,43 @@
 
 <p>In a recent elixir project, I needed to do something similar and while reading through the test code for HTTPoison, I noticed a library called <a href="https://github.com/eproxus/meck" target="_blank">meck</a> being used. Its a mocking library developed in Erlang. The following is a gist of an example of mocking api calls in Elixir:</p>
 
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="c1"># https://github.com/eproxus/meck</span>
+<figure class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="c1"># https://github.com/eproxus/meck</span>
 <span class="c1"># add meck as a dependency in mix.exs</span>
 
-<span class="kd">defmodule</span> <span class="nc">GithubIssuesTest</span> <span class="k">do</span>
-  <span class="kn">use</span> <span class="nc">ExUnit.Case</span>
+<span class="k">defmodule</span> <span class="no">GithubIssuesTest</span> <span class="k">do</span>
+  <span class="kn">use</span> <span class="no">ExUnit</span><span class="o">.</span><span class="no">Case</span>
   <span class="kn">import</span> <span class="ss">:meck</span>
 
   <span class="n">setup_all</span> <span class="k">do</span>
-    <span class="n">new</span><span class="p">(</span><span class="nc">Issues.GithubIssues</span><span class="p">)</span>
-    <span class="n">on_exit</span> <span class="k">fn</span> <span class="p">-&gt;</span> <span class="n">unload</span> <span class="k">end</span>
+    <span class="n">new</span><span class="p">(</span><span class="no">Issues</span><span class="o">.</span><span class="no">GithubIssues</span><span class="p">)</span>
+    <span class="n">on_exit</span> <span class="k">fn</span> <span class="o">-&gt;</span> <span class="n">unload</span> <span class="k">end</span>
     <span class="ss">:ok</span>
   <span class="k">end</span>
 
-  <span class="n">test</span> <span class="s2">&quot;successful fetch with user and a project&quot;</span> <span class="k">do</span>
+  <span class="n">test</span> <span class="s2">"successful fetch with user and a project"</span> <span class="k">do</span>
     <span class="c1"># already decoded from raw json using jsx in pipeline</span>
-    <span class="n">mock_response</span> <span class="p">=</span> <span class="p">{</span><span class="ss">:ok</span><span class="p">,</span> <span class="p">[</span>
+    <span class="n">mock_response</span> <span class="o">=</span> <span class="p">{</span><span class="ss">:ok</span><span class="p">,</span> <span class="p">[</span>
       <span class="p">[</span>
-        <span class="p">{</span><span class="s2">&quot;url&quot;</span><span class="p">,</span> <span class="s2">&quot;https://api.github.com/repos/elixir-lang/elixir/issues/2956&quot;</span><span class="p">},</span>
-        <span class="p">{</span><span class="s2">&quot;html_url&quot;</span><span class="p">,</span> <span class="s2">&quot;https://github.com/elixir-lang/elixir/issues/2956&quot;</span><span class="p">},</span>
-        <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="mi">52467010</span><span class="p">},</span>
-        <span class="p">{</span><span class="s2">&quot;number&quot;</span><span class="p">,</span> <span class="mi">2956</span><span class="p">}</span>
+        <span class="p">{</span><span class="s2">"url"</span><span class="p">,</span> <span class="s2">"https://api.github.com/repos/elixir-lang/elixir/issues/2956"</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">"html_url"</span><span class="p">,</span> <span class="s2">"https://github.com/elixir-lang/elixir/issues/2956"</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">"id"</span><span class="p">,</span> <span class="mi">52467010</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">"number"</span><span class="p">,</span> <span class="mi">2956</span><span class="p">}</span>
         <span class="p">]</span>
       <span class="p">]</span>
     <span class="p">}</span>
 
     <span class="c1"># use meck to create a mock response</span>
-    <span class="n">expect</span><span class="p">(</span><span class="nc">Issues.GithubIssues</span><span class="p">,</span> <span class="ss">:fetch</span><span class="p">,</span> <span class="k">fn</span><span class="p">(</span><span class="s2">&quot;elixir-lang&quot;</span><span class="p">,</span> <span class="s2">&quot;elixir&quot;</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">mock_response</span> <span class="k">end</span><span class="p">)</span>
+    <span class="n">expect</span><span class="p">(</span><span class="no">Issues</span><span class="o">.</span><span class="no">GithubIssues</span><span class="p">,</span> <span class="ss">:fetch</span><span class="p">,</span> <span class="k">fn</span><span class="p">(</span><span class="s2">"elixir-lang"</span><span class="p">,</span> <span class="s2">"elixir"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mock_response</span> <span class="k">end</span><span class="p">)</span>
 
     <span class="c1"># calls the actual function which makes the actual api call!</span>
-    <span class="c1"># expect(Issues.GithubIssues, :fetch, fn(&quot;elixir-lang&quot;, &quot;elixir&quot;) -&gt; :meck.passthrough([&quot;elixir-lang&quot;, &quot;elixir&quot;]) end)</span>
+    <span class="c1"># expect(Issues.GithubIssues, :fetch, fn("elixir-lang", "elixir") -&gt; :meck.passthrough(["elixir-lang", "elixir"]) end)</span>
 
 
-    <span class="n">assert</span> <span class="n">validate</span><span class="p">(</span><span class="nc">Issues.GithubIssues</span><span class="p">)</span>
+    <span class="n">assert</span> <span class="n">validate</span><span class="p">(</span><span class="no">Issues</span><span class="o">.</span><span class="no">GithubIssues</span><span class="p">)</span>
 
-    <span class="n">assert</span> <span class="nc">Issues.GithubIssues</span><span class="p">.</span><span class="n">fetch</span><span class="p">(</span><span class="s2">&quot;elixir-lang&quot;</span><span class="p">,</span> <span class="s2">&quot;elixir&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">mock_response</span>
+    <span class="n">assert</span> <span class="no">Issues</span><span class="o">.</span><span class="no">GithubIssues</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s2">"elixir-lang"</span><span class="p">,</span> <span class="s2">"elixir"</span><span class="p">)</span> <span class="o">==</span> <span class="n">mock_response</span>
   <span class="k">end</span>
-<span class="k">end</span></code></pre></div>
+<span class="k">end</span></code></pre></figure>
 
 <p>The module under test makes an API call to the Github api to fetch the latest issues for a given project.</p>
 
@@ -149,19 +149,19 @@
 
 <p>In the setup block, I created a new mock object using</p>
 
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="ss">:meck</span><span class="p">.</span><span class="n">new</span><span class="p">(</span><span class="nc">Issues.GithubIssues</span><span class="p">)</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="ss">:meck</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="no">Issues</span><span class="o">.</span><span class="no">GithubIssues</span><span class="p">)</span></code></pre></figure>
 
 <p>The on_exit call unloads :meck and restores the module its original functionality.</p>
 
 <p>Within the test block, I stubbed out the actual method call using:</p>
 
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="ss">:meck</span><span class="p">.</span><span class="n">expect</span><span class="p">(</span><span class="nc">Issues.GithubIssues</span><span class="p">,</span> <span class="ss">:fetch</span><span class="p">,</span> <span class="k">fn</span><span class="p">(</span><span class="s2">&quot;elixir-lang&quot;</span><span class="p">,</span> <span class="s2">&quot;elixir&quot;</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">mock_response</span> <span class="k">end</span><span class="p">)</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="ss">:meck</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="no">Issues</span><span class="o">.</span><span class="no">GithubIssues</span><span class="p">,</span> <span class="ss">:fetch</span><span class="p">,</span> <span class="k">fn</span><span class="p">(</span><span class="s2">"elixir-lang"</span><span class="p">,</span> <span class="s2">"elixir"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mock_response</span> <span class="k">end</span><span class="p">)</span></code></pre></figure>
 
 <p>Every call to Issues.Github.fetch(“elixir-lang”,”elixir”) will return the mock response and will not make the actual api call.</p>
 
 <p>Like in WebMock, we can force the module to make the actual API call using:</p>
 
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="ss">:meck</span><span class="p">.</span><span class="n">passthrough</span><span class="p">([</span><span class="s2">&quot;elixir-lang&quot;</span><span class="p">,</span> <span class="s2">&quot;elixir&quot;</span><span class="p">])</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="ss">:meck</span><span class="o">.</span><span class="n">passthrough</span><span class="p">([</span><span class="s2">"elixir-lang"</span><span class="p">,</span> <span class="s2">"elixir"</span><span class="p">])</span></code></pre></figure>
 
 <p>Happy Hacking!</p>
 
@@ -183,7 +183,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -209,6 +209,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

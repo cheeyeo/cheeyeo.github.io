@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Using the around_save callback in ActiveRecord models for further processing">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="activerecord, rails, ruby">
-    <link rel="canonical" href="https://www.cheeyeo.dev/rails/ruby/activerecord/2015/12/13/around-callbacks-in-activerecord/">
+    <meta name="keywords" content="rails, ruby, ActiveRecord">
+    <link rel="canonical" href="http://localhost:4000/rails/ruby/activerecord/2015/12/13/around-callbacks-in-activerecord/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Using around_save callbacks in ActiveRecord">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/rails/ruby/activerecord/2015/12/13/around-callbacks-in-activerecord/">
+    <meta property="og:url" content="http://localhost:4000/rails/ruby/activerecord/2015/12/13/around-callbacks-in-activerecord/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -67,15 +67,15 @@
     <ul class="article-tag">
       
       <li>
-        <a href="/categories/activerecord">activerecord</a>
-      </li>
-      
-      <li>
         <a href="/categories/rails">rails</a>
       </li>
       
       <li>
         <a href="/categories/ruby">ruby</a>
+      </li>
+      
+      <li>
+        <a href="/categories/ActiveRecord">ActiveRecord</a>
       </li>
       
     </ul>
@@ -95,38 +95,71 @@
 
 <p>However, there might be a need to execute some custom actions in the middle of this callback flow and you might not have control over the callback to make the changes as this might be from say an Engine or a gem.</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">B</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-<span class="lineno"> 2</span>   <span class="n">has_many</span> <span class="ss">:c</span>
-<span class="lineno"> 3</span>   <span class="n">belongs_to</span> <span class="ss">:a</span>
-<span class="lineno"> 4</span> <span class="k">end</span>
-<span class="lineno"> 5</span> 
-<span class="lineno"> 6</span> <span class="k">class</span> <span class="nc">C</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-<span class="lineno"> 7</span>   <span class="n">belongs_to</span> <span class="ss">:b</span>
-<span class="lineno"> 8</span> <span class="k">end</span>
-<span class="lineno"> 9</span> 
-<span class="lineno">10</span> 
-<span class="lineno">11</span> <span class="c1"># this module could be from a gem or engine</span>
-<span class="lineno">12</span> <span class="k">module</span> <span class="nn">Audit</span>
-<span class="lineno">13</span>   <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">included</span><span class="p">(</span><span class="n">klass</span><span class="p">)</span>
-<span class="lineno">14</span>     <span class="n">klass</span><span class="o">.</span><span class="n">extend</span> <span class="no">ClassMethods</span>
-<span class="lineno">15</span>   <span class="k">end</span>
-<span class="lineno">16</span> 
-<span class="lineno">17</span>   <span class="k">module</span> <span class="nn">ClassMethods</span>
-<span class="lineno">18</span>     <span class="n">has_many</span> <span class="ss">:b</span>
-<span class="lineno">19</span> 
-<span class="lineno">20</span>     <span class="n">after_save</span> <span class="ss">:create_b</span>
-<span class="lineno">21</span> 
-<span class="lineno">22</span>     <span class="k">def</span> <span class="nf">create_b</span>
-<span class="lineno">23</span>       <span class="c1"># saves a record of type B</span>
-<span class="lineno">24</span>     <span class="k">end</span>
-<span class="lineno">25</span>   <span class="k">end</span>
-<span class="lineno">26</span> <span class="k">end</span>
-<span class="lineno">27</span> 
-<span class="lineno">28</span> <span class="k">class</span> <span class="nc">A</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-<span class="lineno">29</span>   <span class="kp">include</span> <span class="no">Audit</span>
-<span class="lineno">30</span> 
-<span class="lineno">31</span>   <span class="c1"># how do we create C which has a reference to B ??</span>
-<span class="lineno">32</span> <span class="k">end</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+</pre></td><td class="code"><pre><span class="k">class</span> <span class="nc">B</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_many</span> <span class="ss">:c</span>
+  <span class="n">belongs_to</span> <span class="ss">:a</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">C</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:b</span>
+<span class="k">end</span>
+
+
+<span class="c1"># this module could be from a gem or engine</span>
+<span class="k">module</span> <span class="nn">Audit</span>
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">included</span><span class="p">(</span><span class="n">klass</span><span class="p">)</span>
+    <span class="n">klass</span><span class="p">.</span><span class="nf">extend</span> <span class="no">ClassMethods</span>
+  <span class="k">end</span>
+
+  <span class="k">module</span> <span class="nn">ClassMethods</span>
+    <span class="n">has_many</span> <span class="ss">:b</span>
+
+    <span class="n">after_save</span> <span class="ss">:create_b</span>
+
+    <span class="k">def</span> <span class="nf">create_b</span>
+      <span class="c1"># saves a record of type B</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">A</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="kp">include</span> <span class="no">Audit</span>
+
+  <span class="c1"># how do we create C which has a reference to B ??</span>
+<span class="k">end</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Take the example above. We have an ActiveRecord model A, whereby after saving it, it creates a record in the database of type B.</p>
 
@@ -138,31 +171,53 @@
 
 <p>The following ruby code demonstrates the idea:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="k">def</span> <span class="nf">test_yield</span>
-<span class="lineno">2</span>   <span class="nb">puts</span> <span class="s2">&quot;Hello World!&quot;</span>
-<span class="lineno">3</span>   <span class="k">yield</span>
-<span class="lineno">4</span>   <span class="nb">puts</span> <span class="s2">&quot;Goodbye World!&quot;</span>
-<span class="lineno">5</span> <span class="k">end</span>
-<span class="lineno">6</span> 
-<span class="lineno">7</span> <span class="n">test_yield</span><span class="p">{</span> <span class="nb">puts</span> <span class="s2">&quot;Custom processing here...&quot;</span> <span class="p">}</span> <span class="c1"># =&gt; Hello World!; Custom processing here...; Goodbye World!</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+</pre></td><td class="code"><pre><span class="k">def</span> <span class="nf">test_yield</span>
+  <span class="nb">puts</span> <span class="s2">"Hello World!"</span>
+  <span class="k">yield</span>
+  <span class="nb">puts</span> <span class="s2">"Goodbye World!"</span>
+<span class="k">end</span>
+
+<span class="n">test_yield</span><span class="p">{</span> <span class="nb">puts</span> <span class="s2">"Custom processing here..."</span> <span class="p">}</span> <span class="c1"># =&gt; Hello World!; Custom processing here...; Goodbye World!</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>The test_yield method calls the block when it reaches yield and passes control to the code inside the block. Once thats done, control returns to the end of the original method.</p>
 
 <p>I can use an around_save callback which calls yield on the main class to run its callbacks and then have it run my custom code after:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">A</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
-<span class="lineno"> 2</span>   <span class="kp">include</span> <span class="no">Audit</span>
-<span class="lineno"> 3</span> 
-<span class="lineno"> 4</span>   <span class="n">around_save</span> <span class="ss">:create_c</span>
-<span class="lineno"> 5</span> 
-<span class="lineno"> 6</span>   <span class="k">def</span> <span class="nf">create_c</span>
-<span class="lineno"> 7</span>     <span class="c1"># calls the after_save defined in Audit module first</span>
-<span class="lineno"> 8</span>     <span class="k">yield</span>
-<span class="lineno"> 9</span> 
-<span class="lineno">10</span>     <span class="c1"># custom call to create C</span>
-<span class="lineno">11</span>     <span class="n">C</span><span class="o">.</span><span class="n">create!</span><span class="p">(</span><span class="ss">b</span><span class="p">:</span> <span class="vi">@b</span><span class="p">)</span>
-<span class="lineno">12</span>   <span class="k">end</span>
-<span class="lineno">13</span> <span class="k">end</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+</pre></td><td class="code"><pre><span class="k">class</span> <span class="nc">A</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="kp">include</span> <span class="no">Audit</span>
+
+  <span class="n">around_save</span> <span class="ss">:create_c</span>
+
+  <span class="k">def</span> <span class="nf">create_c</span>
+    <span class="c1"># calls the after_save defined in Audit module first</span>
+    <span class="k">yield</span>
+
+    <span class="c1"># custom call to create C</span>
+    <span class="no">C</span><span class="p">.</span><span class="nf">create!</span><span class="p">(</span><span class="ss">b: </span><span class="vi">@b</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Happy Hacking!</p>
 
@@ -184,7 +239,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -210,6 +265,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

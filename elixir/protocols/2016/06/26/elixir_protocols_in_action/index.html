@@ -8,7 +8,7 @@
     <meta name="description" content="Using Collectable protocol in Elixir">
     <meta name="author" content="Chee Yeo">
     <meta name="keywords" content="elixir, protocols">
-    <link rel="canonical" href="https://www.cheeyeo.dev/elixir/protocols/2016/06/26/elixir_protocols_in_action/">
+    <link rel="canonical" href="http://localhost:4000/elixir/protocols/2016/06/26/elixir_protocols_in_action/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Elixir protocols in action">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/elixir/protocols/2016/06/26/elixir_protocols_in_action/">
+    <meta property="og:url" content="http://localhost:4000/elixir/protocols/2016/06/26/elixir_protocols_in_action/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -93,52 +93,77 @@
   <p>An interface defines whether two things can fit together, a protocol defines whether two things can work together.</p>
 </blockquote>
 
-<p>To demonstrate how a protocol allows a custom struct to work with the Enum module, I’ve devised a contrived example whereby I’m implementing the <code>Collectable protocol</code> for a custom data struct.</p>
+<p>To demonstrate how a protocol allows a custom struct to work with the Enum module, I’ve devised a contrived example whereby I’m implementing the <code class="language-plaintext highlighter-rouge">Collectable protocol</code> for a custom data struct.</p>
 
-<p>The Enum module supports a function <code>into</code> which takes an enumerable, and a data structure and transposes the original enumerable into the given data structure and returns it.</p>
+<p>The Enum module supports a function <code class="language-plaintext highlighter-rouge">into</code> which takes an enumerable, and a data structure and transposes the original enumerable into the given data structure and returns it.</p>
 
-<p>An example of putting items from one list into another after transformation using <code>Enum.into/3</code>:</p>
+<p>An example of putting items from one list into another after transformation using <code class="language-plaintext highlighter-rouge">Enum.into/3</code>:</p>
 
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="lineno">1</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">into</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="p">[],</span> <span class="k">fn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">end</span><span class="p">)</span> <span class="c1"># =&gt; [2,3,4]</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-elixir" data-lang="elixir"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+</pre></td><td class="code"><pre><span class="no">Enum</span><span class="o">.</span><span class="n">into</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="p">[],</span> <span class="k">fn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">end</span><span class="p">)</span> <span class="c1"># =&gt; [2,3,4]</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
-<p>The second argument for into is our <code>Collectable</code> as specified in the docs. We just need to implement the <code>Collectable protocol</code> for our data struct by implementing one method called <code>into</code> and passing it the original data structure.</p>
+<p>The second argument for into is our <code class="language-plaintext highlighter-rouge">Collectable</code> as specified in the docs. We just need to implement the <code class="language-plaintext highlighter-rouge">Collectable protocol</code> for our data struct by implementing one method called <code class="language-plaintext highlighter-rouge">into</code> and passing it the original data structure.</p>
 
-<p>Assuming we have a struct called <code>MyCollectable</code>, the implementation and function declaration looks like this:</p>
+<p>Assuming we have a struct called <code class="language-plaintext highlighter-rouge">MyCollectable</code>, the implementation and function declaration looks like this:</p>
 
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="lineno"> 1</span> <span class="c1"># this is the custom data struct we are storing the data into</span>
-<span class="lineno"> 2</span> <span class="kd">defmodule</span> <span class="nc">MyCollectable</span> <span class="k">do</span>
-<span class="lineno"> 3</span>   <span class="kd">defstruct</span> <span class="ss">results</span><span class="p">:</span> <span class="p">[]</span>
-<span class="lineno"> 4</span> <span class="k">end</span>
-<span class="lineno"> 5</span> 
-<span class="lineno"> 6</span> 
-<span class="lineno"> 7</span> <span class="kd">defimpl</span> <span class="nc">Collectable</span><span class="p">,</span> <span class="ss">for</span><span class="p">:</span> <span class="nc">MyCollectable</span> <span class="k">do</span>
-<span class="lineno"> 8</span>   <span class="kd">def</span> <span class="n">into</span><span class="p">(</span><span class="n">original</span><span class="p">)</span> <span class="k">do</span>
-<span class="lineno"> 9</span>     <span class="p">{</span><span class="n">original</span><span class="p">,</span> <span class="k">fn</span>
-<span class="lineno">10</span>       <span class="n">source</span><span class="p">,</span> <span class="p">{</span><span class="ss">:cont</span><span class="p">,</span> <span class="no">nil</span><span class="p">}</span> <span class="p">-&gt;</span> <span class="n">source</span>
-<span class="lineno">11</span>       <span class="n">source</span><span class="p">,</span> <span class="p">{</span><span class="ss">:cont</span><span class="p">,</span> <span class="n">value</span><span class="p">}</span> <span class="p">-&gt;</span>
-<span class="lineno">12</span>         <span class="p">%</span><span class="nc">MyCollectable</span><span class="p">{</span><span class="n">source</span> <span class="p">|</span> <span class="ss">results</span><span class="p">:</span> <span class="p">[</span><span class="n">value</span><span class="p">|</span><span class="n">source</span><span class="p">.</span><span class="n">results</span><span class="p">]}</span>
-<span class="lineno">13</span>       <span class="n">source</span><span class="p">,</span> <span class="ss">:done</span> <span class="p">-&gt;</span>
-<span class="lineno">14</span>         <span class="p">%</span><span class="nc">MyCollectable</span><span class="p">{</span><span class="n">source</span> <span class="p">|</span> <span class="ss">results</span><span class="p">:</span> <span class="ss">:lists</span><span class="p">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">source</span><span class="p">.</span><span class="n">results</span><span class="p">)}</span>
-<span class="lineno">15</span>       <span class="bp">_</span><span class="p">,</span> <span class="ss">:halt</span> <span class="p">-&gt;</span> <span class="ss">:ok</span>
-<span class="lineno">16</span>     <span class="k">end</span><span class="p">}</span>
-<span class="lineno">17</span>   <span class="k">end</span>
-<span class="lineno">18</span> <span class="k">end</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-elixir" data-lang="elixir"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+</pre></td><td class="code"><pre><span class="c1"># this is the custom data struct we are storing the data into</span>
+<span class="k">defmodule</span> <span class="no">MyCollectable</span> <span class="k">do</span>
+  <span class="k">defstruct</span> <span class="ss">results:</span> <span class="p">[]</span>
+<span class="k">end</span>
 
-<p>The <code>Collectable.into</code> function returns a tuple of the original collection and a function which is applied as it cycles through each item.</p>
 
-<p>For <code>{:cont, nil}</code> no value is matched so it returns the original collection.</p>
+<span class="k">defimpl</span> <span class="no">Collectable</span><span class="p">,</span> <span class="ss">for:</span> <span class="no">MyCollectable</span> <span class="k">do</span>
+  <span class="k">def</span> <span class="n">into</span><span class="p">(</span><span class="n">original</span><span class="p">)</span> <span class="k">do</span>
+    <span class="p">{</span><span class="n">original</span><span class="p">,</span> <span class="k">fn</span>
+      <span class="n">source</span><span class="p">,</span> <span class="p">{</span><span class="ss">:cont</span><span class="p">,</span> <span class="no">nil</span><span class="p">}</span> <span class="o">-&gt;</span> <span class="n">source</span>
+      <span class="n">source</span><span class="p">,</span> <span class="p">{</span><span class="ss">:cont</span><span class="p">,</span> <span class="n">value</span><span class="p">}</span> <span class="o">-&gt;</span>
+        <span class="p">%</span><span class="no">MyCollectable</span><span class="p">{</span><span class="n">source</span> <span class="o">|</span> <span class="ss">results:</span> <span class="p">[</span><span class="n">value</span><span class="o">|</span><span class="n">source</span><span class="o">.</span><span class="n">results</span><span class="p">]}</span>
+      <span class="n">source</span><span class="p">,</span> <span class="ss">:done</span> <span class="o">-&gt;</span>
+        <span class="p">%</span><span class="no">MyCollectable</span><span class="p">{</span><span class="n">source</span> <span class="o">|</span> <span class="ss">results:</span> <span class="ss">:lists</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">results</span><span class="p">)}</span>
+      <span class="n">_</span><span class="p">,</span> <span class="ss">:halt</span> <span class="o">-&gt;</span> <span class="ss">:ok</span>
+    <span class="k">end</span><span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
-<p>For <code>{:cont, value}</code> a value is found so it is appended to the head of the collection results list in our example but can be customized to suit.</p>
+<p>The <code class="language-plaintext highlighter-rouge">Collectable.into</code> function returns a tuple of the original collection and a function which is applied as it cycles through each item.</p>
 
-<p>When <code>{:done}</code> is read, it means it has reached the end of the iteration. In our case, we return an updated <code>MyCollectable</code> struct with the results reversed in the right sequence.</p>
+<p>For <code class="language-plaintext highlighter-rouge">{:cont, nil}</code> no value is matched so it returns the original collection.</p>
 
-<p>Finally, <code>{:halt}</code> is implemented to return <code>:ok</code> and it is to handle situations where processing is interuppted.</p>
+<p>For <code class="language-plaintext highlighter-rouge">{:cont, value}</code> a value is found so it is appended to the head of the collection results list in our example but can be customized to suit.</p>
 
-<p>To use it, we can pass it into <code>Enum.into</code> like so:</p>
+<p>When <code class="language-plaintext highlighter-rouge">{:done}</code> is read, it means it has reached the end of the iteration. In our case, we return an updated <code class="language-plaintext highlighter-rouge">MyCollectable</code> struct with the results reversed in the right sequence.</p>
 
-<div class="highlight"><pre><code class="language-elixir" data-lang="elixir"><span class="lineno">1</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">into</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="p">%</span><span class="nc">MyCollectable</span><span class="p">{})</span> <span class="c1"># =&gt; %MyCollectable{results: [1,2,3]}</span>
-<span class="lineno">2</span> 
-<span class="lineno">3</span> <span class="nc">Enum</span><span class="p">.</span><span class="n">into</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="p">%</span><span class="nc">MyCollectable</span><span class="p">{},</span> <span class="k">fn</span> <span class="n">x</span> <span class="p">-&gt;</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">end</span> <span class="p">)</span> <span class="c1"># =&gt; %MyCollectable{results: [2,3,4]}</span></code></pre></div>
+<p>Finally, <code class="language-plaintext highlighter-rouge">{:halt}</code> is implemented to return <code class="language-plaintext highlighter-rouge">:ok</code> and it is to handle situations where processing is interuppted.</p>
+
+<p>To use it, we can pass it into <code class="language-plaintext highlighter-rouge">Enum.into</code> like so:</p>
+
+<figure class="highlight"><pre><code class="language-elixir" data-lang="elixir"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+</pre></td><td class="code"><pre><span class="no">Enum</span><span class="o">.</span><span class="n">into</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="p">%</span><span class="no">MyCollectable</span><span class="p">{})</span> <span class="c1"># =&gt; %MyCollectable{results: [1,2,3]}</span>
+
+<span class="no">Enum</span><span class="o">.</span><span class="n">into</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="p">%</span><span class="no">MyCollectable</span><span class="p">{},</span> <span class="k">fn</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">end</span> <span class="p">)</span> <span class="c1"># =&gt; %MyCollectable{results: [2,3,4]}</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>A <a href="https://github.com/cheeyeo/Collectable_Example" target="_blank">sample github repository</a> for this post is available.</p>
 
@@ -176,7 +201,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -202,6 +227,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

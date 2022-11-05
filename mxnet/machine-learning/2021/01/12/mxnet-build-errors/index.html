@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Common errors encountered with building MxNet">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="machine-learning, mxnet">
-    <link rel="canonical" href="https://www.cheeyeo.dev/mxnet/machine-learning/2021/01/12/mxnet-build-errors/">
+    <meta name="keywords" content="mxnet, machine-learning">
+    <link rel="canonical" href="http://localhost:4000/mxnet/machine-learning/2021/01/12/mxnet-build-errors/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Building / Compiling MXNet errors">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/mxnet/machine-learning/2021/01/12/mxnet-build-errors/">
+    <meta property="og:url" content="http://localhost:4000/mxnet/machine-learning/2021/01/12/mxnet-build-errors/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -67,11 +67,11 @@
     <ul class="article-tag">
       
       <li>
-        <a href="/categories/machine-learning">machine-learning</a>
+        <a href="/categories/mxnet">mxnet</a>
       </li>
       
       <li>
-        <a href="/categories/mxnet">mxnet</a>
+        <a href="/categories/machine-learning">machine-learning</a>
       </li>
       
     </ul>
@@ -87,9 +87,9 @@
 
 
 <article class="post-content top-border">
-  <p>MXNet is a popular machine learning / deep learning framework. Compared to its peers such as TensorFlow, it is not as popular. </p>
+  <p>MXNet is a popular machine learning / deep learning framework. Compared to its peers such as TensorFlow, it is not as popular.</p>
 
-<p>Indeed, my last search on safari books online only yielded publications with the <code>mxnet</code> name mentioned but no concrete examples on how to build or use it.</p>
+<p>Indeed, my last search on safari books online only yielded publications with the <code class="language-plaintext highlighter-rouge">mxnet</code> name mentioned but no concrete examples on how to build or use it.</p>
 
 <p>In this post I aim to show some of the common errors I encountered while building it manually. In future posts, I will demonstrate how I build it from scratch using multi-stage builds.</p>
 
@@ -101,48 +101,73 @@
 
 <p>In my earlier attempts at compilation, the process would fail suddenly with errors such as:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">...</span>
-<span class="lineno">2</span> <span class="go">c++: internal compiler error: Killed (program cc1plus)</span>
-<span class="lineno">3</span> <span class="go">Please submit a full bug report,</span>
-<span class="lineno">4</span> <span class="go">with preprocessed source if appropriate.</span>
-<span class="lineno">5</span> <span class="go">See &lt;file:///usr/share/doc/gcc-7/README.Bugs&gt; for instructions.</span>
-<span class="lineno">6</span> <span class="go">make[2]: *** [CMakeFiles/mxnet_static.dir/src/operator/tensor/indexing_op.cc.o] Error 4</span>
-<span class="lineno">7</span> <span class="go">make[2]: *** Waiting for unfinished jobs....</span>
-<span class="lineno">8</span> <span class="go">...</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+</pre></td><td class="code"><pre><span class="c">...
+</span><span class="go">c++: internal compiler error: Killed (program cc1plus)
+Please submit a full bug report,
+with preprocessed source if appropriate.
+</span><span class="gp">See &lt;file:///usr/share/doc/gcc-7/README.Bugs&gt;</span><span class="w"> </span><span class="k">for </span>instructions.
+<span class="go">make[2]: *** [CMakeFiles/mxnet_static.dir/src/operator/tensor/indexing_op.cc.o] Error 4
+make[2]: *** Waiting for unfinished jobs....
+</span><span class="c">...</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>This is related to a <a href="https://github.com/apache/incubator-mxnet/issues/13773" target="_blank">gcc 7.5 memory leak issue</a></p>
 
 <p>Assuming you have gcc 8 installed, we can use gcc 8 by passing in the following options during compilation…</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">export CC=&quot;gcc-8&quot; &amp;&amp; \</span>
-<span class="lineno">2</span> <span class="go">export CXX=&quot;g++-8&quot;</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+</pre></td><td class="code"><pre><span class="go">export CC="gcc-8" &amp;&amp; \
+export CXX="g++-8"</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
-<p>Examples show compilation through <code>ninja</code> build tool. However, my attempts at using it have been unsuccessful. I find that at least on my local machine, <code>ninja</code> tends to consume more CPU and memory resources than it should whereas with <code>cmake</code> build tool, I have more control over the number of processes and it also shows the logs in the console than using the former.</p>
+<p>Examples show compilation through <code class="language-plaintext highlighter-rouge">ninja</code> build tool. However, my attempts at using it have been unsuccessful. I find that at least on my local machine, <code class="language-plaintext highlighter-rouge">ninja</code> tends to consume more CPU and memory resources than it should whereas with <code class="language-plaintext highlighter-rouge">cmake</code> build tool, I have more control over the number of processes and it also shows the logs in the console than using the former.</p>
 
 <h3 id="onnx-issues">ONNX Issues</h3>
 
-<p>If compilation fails with <code>namespace not found</code> with onnx option set, then set the appropriate environment variable:</p>
+<p>If compilation fails with <code class="language-plaintext highlighter-rouge">namespace not found</code> with onnx option set, then set the appropriate environment variable:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">export ONNX_NAMESPACE=onnx</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+</pre></td><td class="code"><pre><span class="go">export ONNX_NAMESPACE=onnx</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
-<p>After compilation but while loading the framework, if it fails with <code>File already exists: ... onnx-ml.proto</code>, this is due to the <code>protobuf</code> library being built as a shared library and since <code>onnx-ml.proto</code> is also symlinked by other libs, it will raise an error.</p>
+<p>After compilation but while loading the framework, if it fails with <code class="language-plaintext highlighter-rouge">File already exists: ... onnx-ml.proto</code>, this is due to the <code class="language-plaintext highlighter-rouge">protobuf</code> library being built as a shared library and since <code class="language-plaintext highlighter-rouge">onnx-ml.proto</code> is also symlinked by other libs, it will raise an error.</p>
 
 <p>The only solution to this is to remove all previous installs of protobuf and build it again manually. The below works for me:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno"> 1</span> <span class="go">git clone --recursive -b 3.5.1.1 https://github.com/google/protobuf.git &amp;&amp; \</span>
-<span class="lineno"> 2</span> <span class="go">    cd protobuf &amp;&amp; \</span>
-<span class="lineno"> 3</span> <span class="go">    ./autogen.sh &amp;&amp; \</span>
-<span class="lineno"> 4</span> <span class="go">    ./configure --disable-shared CXXFLAGS=-fPIC --prefix=/protobufbuild &amp;&amp; \</span>
-<span class="lineno"> 5</span> <span class="go">    make -j4 &amp;&amp; \</span>
-<span class="lineno"> 6</span> <span class="go">    make install &amp;&amp; \</span>
-<span class="lineno"> 7</span> <span class="go">    ldconfig &amp;&amp; \</span>
-<span class="lineno"> 8</span> <span class="go">    cd / &amp;&amp; \</span>
-<span class="lineno"> 9</span> <span class="go">    cp /protobufbuild /usr/local &amp;&amp; \</span>
-<span class="lineno">10</span> <span class="go">    rm -rf protobuf</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+</pre></td><td class="code"><pre><span class="go">git clone --recursive -b 3.5.1.1 https://github.com/google/protobuf.git &amp;&amp; \
+    cd protobuf &amp;&amp; \
+    ./autogen.sh &amp;&amp; \
+    ./configure --disable-shared CXXFLAGS=-fPIC --prefix=/protobufbuild &amp;&amp; \
+    make -j4 &amp;&amp; \
+    make install &amp;&amp; \
+    ldconfig &amp;&amp; \
+    cd / &amp;&amp; \
+    cp /protobufbuild /usr/local &amp;&amp; \
+    rm -rf protobuf</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
-<p>Note the <code>--disable-shared</code> option which builds it as a static library.</p>
+<p>Note the <code class="language-plaintext highlighter-rouge">--disable-shared</code> option which builds it as a static library.</p>
 
-<p>For running onnx in python, we need to install the <code>onnx</code> pypi package. A compatible version I found to work across all mxnet versions from v1.6.x - v1.8.x is <code>onnx==1.3.0</code></p>
+<p>For running onnx in python, we need to install the <code class="language-plaintext highlighter-rouge">onnx</code> pypi package. A compatible version I found to work across all mxnet versions from v1.6.x - v1.8.x is <code class="language-plaintext highlighter-rouge">onnx==1.3.0</code></p>
 
 <h3 id="mkldnn-issues">MKLDNN Issues</h3>
 
@@ -152,25 +177,39 @@
 
 <p>While compiling the python wheel, I had to enable TVM and it threw an error of:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno"> 1</span> <span class="go">Traceback (most recent call last):</span>
-<span class="lineno"> 2</span> <span class="go">    File &quot;/mxnet/contrib/tvmop/compile.py&quot;, line 20, in &lt;module&gt;</span>
-<span class="lineno"> 3</span> <span class="go">      import tvm</span>
-<span class="lineno"> 4</span> <span class="go">    File &quot;/mxnet/3rdparty/tvm/python/tvm/__init__.py&quot;, line 36, in &lt;module&gt;</span>
-<span class="lineno"> 5</span> <span class="go">      from . import target</span>
-<span class="lineno"> 6</span> <span class="go">    File &quot;/mxnet/3rdparty/tvm/python/tvm/target.py&quot;, line 70, in &lt;module&gt;</span>
-<span class="lineno"> 7</span> <span class="go">      raise err_msg</span>
-<span class="lineno"> 8</span> <span class="go">    File &quot;/mxnet/3rdparty/tvm/python/tvm/target.py&quot;, line 66, in &lt;module&gt;</span>
-<span class="lineno"> 9</span> <span class="go">      from decorator import decorate</span>
-<span class="lineno">10</span> <span class="go">  ModuleNotFoundError: No module named &#39;decorator&#39;</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+</pre></td><td class="code"><pre><span class="go">Traceback (most recent call last):
+</span><span class="gp">    File "/mxnet/contrib/tvmop/compile.py", line 20, in &lt;module&gt;</span><span class="w">
+</span><span class="go">      import tvm
+</span><span class="gp">    File "/mxnet/3rdparty/tvm/python/tvm/__init__.py", line 36, in &lt;module&gt;</span><span class="w">
+</span><span class="go">      from . import target
+</span><span class="gp">    File "/mxnet/3rdparty/tvm/python/tvm/target.py", line 70, in &lt;module&gt;</span><span class="w">
+</span><span class="go">      raise err_msg
+</span><span class="gp">    File "/mxnet/3rdparty/tvm/python/tvm/target.py", line 66, in &lt;module&gt;</span><span class="w">
+</span><span class="go">      from decorator import decorate
+  ModuleNotFoundError: No module named 'decorator'</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
-<p>Ensure that the <code>decorator==4.4.2</code> pypi package is present before building the 3rd party plugins.</p>
+<p>Ensure that the <code class="language-plaintext highlighter-rouge">decorator==4.4.2</code> pypi package is present before building the 3rd party plugins.</p>
 
 <p>Another issue I encountered was <a href="https://github.com/apache/incubator-mxnet/issues/16704" target="_blank">not being able to locate / load the TVM config file issue</a></p>
 
-<p>After building mxnet, you need to run the following to copy the generated <code>tvmop.conf</code> file from the build folder into <code>/usr/local/lib/&lt;python version&gt;/lib</code>:</p>
+<p>After building mxnet, you need to run the following to copy the generated <code class="language-plaintext highlighter-rouge">tvmop.conf</code> file from the build folder into <code class="language-plaintext highlighter-rouge">/usr/local/lib/&lt;python version&gt;/lib</code>:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">mkdir -p /usr/local/lib/python3.6/lib &amp;&amp; \</span>
-<span class="lineno">2</span> <span class="go">cp tvmop.conf /usr/local/lib/python3.6/lib/</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+</pre></td><td class="code"><pre><span class="go">mkdir -p /usr/local/lib/python3.6/lib &amp;&amp; \
+cp tvmop.conf /usr/local/lib/python3.6/lib/</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <h3 id="cuda-versions">CUDA versions</h3>
 
@@ -201,7 +240,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -227,6 +266,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

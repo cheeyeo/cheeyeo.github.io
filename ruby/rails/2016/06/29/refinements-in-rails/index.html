@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Refining NilClass over using try">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="rails, ruby">
-    <link rel="canonical" href="https://www.cheeyeo.dev/ruby/rails/2016/06/29/refinements-in-rails/">
+    <meta name="keywords" content="ruby, rails">
+    <link rel="canonical" href="http://localhost:4000/ruby/rails/2016/06/29/refinements-in-rails/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Using Ruby Refinements in Rails">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/ruby/rails/2016/06/29/refinements-in-rails/">
+    <meta property="og:url" content="http://localhost:4000/ruby/rails/2016/06/29/refinements-in-rails/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -67,11 +67,11 @@
     <ul class="article-tag">
       
       <li>
-        <a href="/categories/rails">rails</a>
+        <a href="/categories/ruby">ruby</a>
       </li>
       
       <li>
-        <a href="/categories/ruby">ruby</a>
+        <a href="/categories/rails">rails</a>
       </li>
       
     </ul>
@@ -89,74 +89,129 @@
 <article class="post-content top-border">
   <p>Its not very often I get the chance to use refinements in Rails. My past experiences with it in the context of Rails applications has been less than satisfactory due to the way the framework handles code reloading and the way refinements’ scopes work.</p>
 
-<p>However, I feel strongly enough to use refinements in a recent project due to the use / abuse of <code>ActiveSupport#try</code> method.</p>
+<p>However, I feel strongly enough to use refinements in a recent project due to the use / abuse of <code class="language-plaintext highlighter-rouge">ActiveSupport#try</code> method.</p>
 
-<p>Supposing we have an Order class that has a single attribute, <code>date</code>. Also assuming that we have a method which calls <code>to_date</code> on that attribute like so:</p>
+<p>Supposing we have an Order class that has a single attribute, <code class="language-plaintext highlighter-rouge">date</code>. Also assuming that we have a method which calls <code class="language-plaintext highlighter-rouge">to_date</code> on that attribute like so:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">Order</span>
-<span class="lineno"> 2</span>   <span class="kp">attr_accessor</span> <span class="ss">:date</span>
-<span class="lineno"> 3</span> 
-<span class="lineno"> 4</span>   <span class="k">def</span> <span class="nf">confirmed_date</span>
-<span class="lineno"> 5</span>     <span class="vi">@date</span><span class="o">.</span><span class="n">to_date</span>
-<span class="lineno"> 6</span>   <span class="k">end</span>
-<span class="lineno"> 7</span> <span class="k">end</span>
-<span class="lineno"> 8</span> 
-<span class="lineno"> 9</span> <span class="n">o</span> <span class="o">=</span> <span class="no">Order</span><span class="o">.</span><span class="n">new</span>
-<span class="lineno">10</span> <span class="nb">puts</span> <span class="n">o</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">to_date</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+</pre></td><td class="code"><pre><span class="k">class</span> <span class="nc">Order</span>
+  <span class="nb">attr_accessor</span> <span class="ss">:date</span>
 
-<p>If the <code>date</code> attribute is nil, the above would throw an <code>undefined method on NilClass error</code>. A common pattern in Rails application is to wrap the above in a <code>try</code> method from ActiveSupport:</p>
+  <span class="k">def</span> <span class="nf">confirmed_date</span>
+    <span class="vi">@date</span><span class="p">.</span><span class="nf">to_date</span>
+  <span class="k">end</span>
+<span class="k">end</span>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="nb">require</span> <span class="s1">&#39;active_support&#39;</span>
-<span class="lineno"> 2</span> <span class="nb">require</span> <span class="s1">&#39;active_support/core_ext/object/try&#39;</span>
-<span class="lineno"> 3</span> 
-<span class="lineno"> 4</span> <span class="k">class</span> <span class="nc">Order</span>
-<span class="lineno"> 5</span>   <span class="kp">attr_accessor</span> <span class="ss">:date</span>
-<span class="lineno"> 6</span> 
-<span class="lineno"> 7</span>   <span class="k">def</span> <span class="nf">confirmed_date</span>
-<span class="lineno"> 8</span>     <span class="vi">@date</span><span class="o">.</span><span class="n">try</span><span class="p">(</span><span class="ss">:to_date</span><span class="p">)</span>
-<span class="lineno"> 9</span>   <span class="k">end</span>
-<span class="lineno">10</span> <span class="k">end</span></code></pre></div>
+<span class="n">o</span> <span class="o">=</span> <span class="no">Order</span><span class="p">.</span><span class="nf">new</span>
+<span class="nb">puts</span> <span class="n">o</span><span class="p">.</span><span class="nf">date</span><span class="p">.</span><span class="nf">to_date</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
-<p>Using the <code>try</code> method will return <code>nil</code> and not throw an exception. Underneath the hood, ActiveSupport has overridden <code>NilClass</code> with a <code>try</code> method to only return nil, disregarding any arguments passed into it:</p>
+<p>If the <code class="language-plaintext highlighter-rouge">date</code> attribute is nil, the above would throw an <code class="language-plaintext highlighter-rouge">undefined method on NilClass error</code>. A common pattern in Rails application is to wrap the above in a <code class="language-plaintext highlighter-rouge">try</code> method from ActiveSupport:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="c1"># from lib/active_support/core_ext/object/try.rb</span>
-<span class="lineno"> 2</span> 
-<span class="lineno"> 3</span> <span class="k">class</span> <span class="nc">NilClass</span>
-<span class="lineno"> 4</span>   <span class="k">def</span> <span class="nf">try</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
-<span class="lineno"> 5</span>     <span class="kp">nil</span>
-<span class="lineno"> 6</span>   <span class="k">end</span>
-<span class="lineno"> 7</span> 
-<span class="lineno"> 8</span>   <span class="k">def</span> <span class="nf">try!</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
-<span class="lineno"> 9</span>     <span class="kp">nil</span>
-<span class="lineno">10</span>   <span class="k">end</span>
-<span class="lineno">11</span> <span class="k">end</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+</pre></td><td class="code"><pre><span class="nb">require</span> <span class="s1">'active_support'</span>
+<span class="nb">require</span> <span class="s1">'active_support/core_ext/object/try'</span>
 
-<p>This pattern is common in most Rails applications, and if you study the Rails source code, there are many examples given of this specific usage of <code>try</code>. But from a ruby perspective, this seems like a kind of anti-pattern to me. NilClass is just another object from the ruby ecosystem so why can’t we just define the missing <code>to_date</code> method on it in this case and not have to worry about calling another method from a dependency to deal with it? My immediate thought is to apply the NullObject pattern but I think it is overkill in this use case since there is only 1 method calling <code>try</code>.</p>
+<span class="k">class</span> <span class="nc">Order</span>
+  <span class="nb">attr_accessor</span> <span class="ss">:date</span>
 
-<p>Rather than overriding NilClass, my approach is to define <code>to_date</code> on it using Ruby refinements which I can use in the context I decide is applicable like so:</p>
+  <span class="k">def</span> <span class="nf">confirmed_date</span>
+    <span class="vi">@date</span><span class="p">.</span><span class="nf">try</span><span class="p">(</span><span class="ss">:to_date</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">module</span> <span class="nn">NilClassRefinements</span>
-<span class="lineno"> 2</span>   <span class="n">refine</span> <span class="no">NilClass</span> <span class="k">do</span>
-<span class="lineno"> 3</span>     <span class="k">def</span> <span class="nf">to_date</span>
-<span class="lineno"> 4</span>       <span class="kp">nil</span>
-<span class="lineno"> 5</span>     <span class="k">end</span>
-<span class="lineno"> 6</span>   <span class="k">end</span>
-<span class="lineno"> 7</span> <span class="k">end</span>
-<span class="lineno"> 8</span> 
-<span class="lineno"> 9</span> <span class="n">using</span> <span class="no">NilClassRefinements</span>
-<span class="lineno">10</span> 
-<span class="lineno">11</span> <span class="k">class</span> <span class="nc">Order</span>
-<span class="lineno">12</span>   <span class="kp">attr_accessor</span> <span class="ss">:date</span>
-<span class="lineno">13</span> 
-<span class="lineno">14</span>   <span class="k">def</span> <span class="nf">confirmed_date</span>
-<span class="lineno">15</span>     <span class="vi">@date</span><span class="o">.</span><span class="n">to_date</span>
-<span class="lineno">16</span>   <span class="k">end</span>
-<span class="lineno">17</span> <span class="k">end</span>
-<span class="lineno">18</span> 
-<span class="lineno">19</span> <span class="n">o</span> <span class="o">=</span> <span class="no">Order</span><span class="o">.</span><span class="n">new</span>
-<span class="lineno">20</span> <span class="nb">puts</span> <span class="n">o</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">to_date</span><span class="o">.</span><span class="n">inspect</span></code></pre></div>
+<p>Using the <code class="language-plaintext highlighter-rouge">try</code> method will return <code class="language-plaintext highlighter-rouge">nil</code> and not throw an exception. Underneath the hood, ActiveSupport has overridden <code class="language-plaintext highlighter-rouge">NilClass</code> with a <code class="language-plaintext highlighter-rouge">try</code> method to only return nil, disregarding any arguments passed into it:</p>
 
-<p>The above also returns <code>nil</code> if <code>@date</code> is nil and is easier to understand with the added benefit of not overriding the core data types in Ruby.</p>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre></td><td class="code"><pre><span class="c1"># from lib/active_support/core_ext/object/try.rb</span>
+
+<span class="k">class</span> <span class="nc">NilClass</span>
+  <span class="k">def</span> <span class="nf">try</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="kp">nil</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">try!</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="kp">nil</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>This pattern is common in most Rails applications, and if you study the Rails source code, there are many examples given of this specific usage of <code class="language-plaintext highlighter-rouge">try</code>. But from a ruby perspective, this seems like a kind of anti-pattern to me. NilClass is just another object from the ruby ecosystem so why can’t we just define the missing <code class="language-plaintext highlighter-rouge">to_date</code> method on it in this case and not have to worry about calling another method from a dependency to deal with it? My immediate thought is to apply the NullObject pattern but I think it is overkill in this use case since there is only 1 method calling <code class="language-plaintext highlighter-rouge">try</code>.</p>
+
+<p>Rather than overriding NilClass, my approach is to define <code class="language-plaintext highlighter-rouge">to_date</code> on it using Ruby refinements which I can use in the context I decide is applicable like so:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+</pre></td><td class="code"><pre><span class="k">module</span> <span class="nn">NilClassRefinements</span>
+  <span class="n">refine</span> <span class="no">NilClass</span> <span class="k">do</span>
+    <span class="k">def</span> <span class="nf">to_date</span>
+      <span class="kp">nil</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="n">using</span> <span class="no">NilClassRefinements</span>
+
+<span class="k">class</span> <span class="nc">Order</span>
+  <span class="nb">attr_accessor</span> <span class="ss">:date</span>
+
+  <span class="k">def</span> <span class="nf">confirmed_date</span>
+    <span class="vi">@date</span><span class="p">.</span><span class="nf">to_date</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="n">o</span> <span class="o">=</span> <span class="no">Order</span><span class="p">.</span><span class="nf">new</span>
+<span class="nb">puts</span> <span class="n">o</span><span class="p">.</span><span class="nf">date</span><span class="p">.</span><span class="nf">to_date</span><span class="p">.</span><span class="nf">inspect</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>The above also returns <code class="language-plaintext highlighter-rouge">nil</code> if <code class="language-plaintext highlighter-rouge">@date</code> is nil and is easier to understand with the added benefit of not overriding the core data types in Ruby.</p>
 
 <p>Stay curious and keep hacking!</p>
 
@@ -178,7 +233,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -204,6 +259,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

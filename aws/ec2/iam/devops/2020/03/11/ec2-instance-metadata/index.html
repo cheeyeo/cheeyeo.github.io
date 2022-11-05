@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="How to extract security credentials from IAM Role">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="aws, devops, ec2, iam">
-    <link rel="canonical" href="https://www.cheeyeo.dev/aws/ec2/iam/devops/2020/03/11/ec2-instance-metadata/">
+    <meta name="keywords" content="aws, ec2, iam, devops">
+    <link rel="canonical" href="http://localhost:4000/aws/ec2/iam/devops/2020/03/11/ec2-instance-metadata/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Using IAM Role with EC2 to access security credentials">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/aws/ec2/iam/devops/2020/03/11/ec2-instance-metadata/">
+    <meta property="og:url" content="http://localhost:4000/aws/ec2/iam/devops/2020/03/11/ec2-instance-metadata/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -71,15 +71,15 @@
       </li>
       
       <li>
-        <a href="/categories/devops">devops</a>
-      </li>
-      
-      <li>
         <a href="/categories/ec2">ec2</a>
       </li>
       
       <li>
         <a href="/categories/iam">iam</a>
+      </li>
+      
+      <li>
+        <a href="/categories/devops">devops</a>
       </li>
       
     </ul>
@@ -101,16 +101,25 @@
 
 <p>When we provision an EC2 instance, we have to assign an IAM role to it in order to access other AWS services. However, the security credentials for the role can also be accessed through the Instance Metadata Service within each instance.</p>
 
-<p>This endpoint is of the form <code>http://169.254.269.254</code> and involves a curl request. We can obtain both user instance data, dynamic data, and instance specific data by using the following endpoints:</p>
+<p>This endpoint is of the form <code class="language-plaintext highlighter-rouge">http://169.254.269.254</code> and involves a curl request. We can obtain both user instance data, dynamic data, and instance specific data by using the following endpoints:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="gp">#</span> Access user data passed in during the ec2 provision process
-<span class="lineno">2</span> <span class="go">curl http://169.254.169.254/latest/user-data </span>
-<span class="lineno">3</span> 
-<span class="lineno">4</span> <span class="gp">#</span> Access instance data
-<span class="lineno">5</span> <span class="go">curl http://169.254.169.254/latest/metadata</span>
-<span class="lineno">6</span> 
-<span class="lineno">7</span> <span class="gp">#</span> Dynamic data
-<span class="lineno">8</span> <span class="go">curl http://169.254.169.254/latest/dynamic</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+</pre></td><td class="code"><pre><span class="gp">#</span><span class="w"> </span>Access user data passed <span class="k">in </span>during the ec2 provision process
+<span class="go">curl http://169.254.169.254/latest/user-data 
+
+</span><span class="gp">#</span><span class="w"> </span>Access instance data
+<span class="go">curl http://169.254.169.254/latest/metadata
+
+</span><span class="gp">#</span><span class="w"> </span>Dynamic data
+<span class="go">curl http://169.254.169.254/latest/dynamic</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>These curl requests are instance specific and can only be run from within the instance itself.</p>
 
@@ -123,32 +132,52 @@
     <p>Create an IAM Role for the EC2 instance and specify which services you wish to communicate with.</p>
   </li>
   <li>
-    <p>During deployment, attach the IAM role to the instance. </p>
+    <p>During deployment, attach the IAM role to the instance.</p>
   </li>
   <li>
     <p>To obtain the security credentials, we can have a user provided script, which is run just after the instance is deployed. We can retrieve and setup the environment variables like so:</p>
   </li>
 </ul>
 
-<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno"> 1</span> <span class="c">#!/bin/sh</span>
-<span class="lineno"> 2</span> 
-<span class="lineno"> 3</span> <span class="c"># obtain the IAM role name</span>
-<span class="lineno"> 4</span> <span class="nv">ROLE</span><span class="o">=</span><span class="k">$(</span>curl http://169.254.169.254/latest/meta-data/iam/security-credentials<span class="k">)</span>
-<span class="lineno"> 5</span> 
-<span class="lineno"> 6</span> <span class="nv">KEYURL</span><span class="o">=</span><span class="s2">&quot;http://169.254.169.254/latest/meta-data/iam/security-credentials/&quot;</span><span class="nv">$ROLE</span><span class="s2">&quot;&quot;</span>
-<span class="lineno"> 7</span> 
-<span class="lineno"> 8</span> <span class="c"># Save the response into a json file</span>
-<span class="lineno"> 9</span> wget <span class="nv">$KEYURL</span> -O iam.json
-<span class="lineno">10</span> 
-<span class="lineno">11</span> <span class="c"># Use jq CLI parser to retrive the credentials: access key id; secret access key; token</span>
-<span class="lineno">12</span> 
-<span class="lineno">13</span> <span class="nv">ACCESSKEYID</span><span class="o">=</span><span class="k">$(</span>cat iam.json <span class="p">|</span> jq -r <span class="s1">&#39;.AccessKeyId&#39;</span><span class="k">)</span>
-<span class="lineno">14</span> <span class="nv">SECRETACCESSKEY</span><span class="o">=</span><span class="k">$(</span>cat iam.json <span class="p">|</span> jq -r <span class="s1">&#39;.SecretAccessKey&#39;</span><span class="k">)</span>
-<span class="lineno">15</span> <span class="nv">TOKEN</span><span class="o">=</span><span class="k">$(</span>cat iam.json <span class="p">|</span> jq -r <span class="s1">&#39;.Token&#39;</span><span class="k">)</span>
-<span class="lineno">16</span> 
-<span class="lineno">17</span> <span class="nb">echo</span> <span class="nv">$ACCESSKEYID</span>
-<span class="lineno">18</span> <span class="nb">echo</span> <span class="nv">$SECRETACCESSKEY</span>
-<span class="lineno">19</span> <span class="nb">echo</span> <span class="nv">$TOKEN</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+</pre></td><td class="code"><pre><span class="c">#!/bin/sh</span>
+
+<span class="c"># obtain the IAM role name</span>
+<span class="nv">ROLE</span><span class="o">=</span><span class="si">$(</span>curl http://169.254.169.254/latest/meta-data/iam/security-credentials<span class="si">)</span>
+
+<span class="nv">KEYURL</span><span class="o">=</span><span class="s2">"http://169.254.169.254/latest/meta-data/iam/security-credentials/"</span><span class="nv">$ROLE</span><span class="s2">""</span>
+
+<span class="c"># Save the response into a json file</span>
+wget <span class="nv">$KEYURL</span> <span class="nt">-O</span> iam.json
+
+<span class="c"># Use jq CLI parser to retrive the credentials: access key id; secret access key; token</span>
+
+<span class="nv">ACCESSKEYID</span><span class="o">=</span><span class="si">$(</span><span class="nb">cat </span>iam.json | jq <span class="nt">-r</span> <span class="s1">'.AccessKeyId'</span><span class="si">)</span>
+<span class="nv">SECRETACCESSKEY</span><span class="o">=</span><span class="si">$(</span><span class="nb">cat </span>iam.json | jq <span class="nt">-r</span> <span class="s1">'.SecretAccessKey'</span><span class="si">)</span>
+<span class="nv">TOKEN</span><span class="o">=</span><span class="si">$(</span><span class="nb">cat </span>iam.json | jq <span class="nt">-r</span> <span class="s1">'.Token'</span><span class="si">)</span>
+
+<span class="nb">echo</span> <span class="nv">$ACCESSKEYID</span>
+<span class="nb">echo</span> <span class="nv">$SECRETACCESSKEY</span>
+<span class="nb">echo</span> <span class="nv">$TOKEN</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>The above can be provided as user data during instance provisioning to setup the environment correctly before the application starts.</p>
 
@@ -175,7 +204,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -201,6 +230,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

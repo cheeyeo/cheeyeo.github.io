@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Using the debug strategy in ansible 2.1 to debug playbooks">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="ansible, automation, deployment">
-    <link rel="canonical" href="https://www.cheeyeo.dev/ansible/deployment/automation/2016/05/30/ansible-debug-strategy/">
+    <meta name="keywords" content="ansible, deployment, automation">
+    <link rel="canonical" href="http://localhost:4000/ansible/deployment/automation/2016/05/30/ansible-debug-strategy/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Debugging Ansible playbooks">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/ansible/deployment/automation/2016/05/30/ansible-debug-strategy/">
+    <meta property="og:url" content="http://localhost:4000/ansible/deployment/automation/2016/05/30/ansible-debug-strategy/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -71,11 +71,11 @@
       </li>
       
       <li>
-        <a href="/categories/automation">automation</a>
+        <a href="/categories/deployment">deployment</a>
       </li>
       
       <li>
-        <a href="/categories/deployment">deployment</a>
+        <a href="/categories/automation">automation</a>
       </li>
       
     </ul>
@@ -91,50 +91,50 @@
 
 
 <article class="post-content top-border">
-  <p>In the latest release of Ansible 2.1, a new <code>debug</code> strategy is added which allows debugging from within each playbook when run. This launches an actual debug console which allows one to inspect variables and the running task. Think of <code>byebug</code> or <code>debugger</code> in ruby but for ansible.</p>
+  <p>In the latest release of Ansible 2.1, a new <code class="language-plaintext highlighter-rouge">debug</code> strategy is added which allows debugging from within each playbook when run. This launches an actual debug console which allows one to inspect variables and the running task. Think of <code class="language-plaintext highlighter-rouge">byebug</code> or <code class="language-plaintext highlighter-rouge">debugger</code> in ruby but for ansible.</p>
 
 <p>As an example, consider the sample playbook below:</p>
 
-<div class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="nn">---</span>
-<span class="p-Indicator">-</span> <span class="l-Scalar-Plain">name</span><span class="p-Indicator">:</span> <span class="s">&quot;Test</span><span class="nv"> </span><span class="s">debug&quot;</span>
-  <span class="l-Scalar-Plain">hosts</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">local</span>
-  <span class="l-Scalar-Plain">strategy</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">debug</span>
-  <span class="l-Scalar-Plain">gather_facts</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">no</span>
-  <span class="l-Scalar-Plain">vars</span><span class="p-Indicator">:</span>
-    <span class="l-Scalar-Plain">var1</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">value1</span>
-  <span class="l-Scalar-Plain">tasks</span><span class="p-Indicator">:</span>
-    <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Non existent variable</span>
-      <span class="l-Scalar-Plain">ping</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">data={{ not_exists }}</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="nn">---</span>
+<span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s2">"</span><span class="s">Test</span><span class="nv"> </span><span class="s">debug"</span>
+  <span class="na">hosts</span><span class="pi">:</span> <span class="s">local</span>
+  <span class="na">strategy</span><span class="pi">:</span> <span class="s">debug</span>
+  <span class="na">gather_facts</span><span class="pi">:</span> <span class="s">no</span>
+  <span class="na">vars</span><span class="pi">:</span>
+    <span class="na">var1</span><span class="pi">:</span> <span class="s">value1</span>
+  <span class="na">tasks</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">Non existent variable</span>
+      <span class="na">ping</span><span class="pi">:</span> <span class="s">data={{ not_exists }}</span></code></pre></figure>
 
-<p>We have a simple playbook which calls a non-existent variable ‘not_exists’ which gets passed to the ping command. Note that we set <code>strategy</code> to be in debug mode. There are other playbook strategies which can be found here: <a href="http://docs.ansible.com/ansible/playbooks_strategies.html">Ansible Strategy</a>.</p>
+<p>We have a simple playbook which calls a non-existent variable ‘not_exists’ which gets passed to the ping command. Note that we set <code class="language-plaintext highlighter-rouge">strategy</code> to be in debug mode. There are other playbook strategies which can be found here: <a href="http://docs.ansible.com/ansible/playbooks_strategies.html">Ansible Strategy</a>.</p>
 
 <p>Once we run the playbook, when it throws an exception it drops into a debugger console like the following:</p>
 
-<div class="highlight"><pre><code class="language-bash" data-lang="bash">PLAY <span class="o">[</span>Test debug<span class="o">]</span> **************************************************************
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash">PLAY <span class="o">[</span>Test debug] <span class="k">**************************************************************</span>
 
-TASK <span class="o">[</span>Non existent variable error<span class="o">]</span> *********************************************
-fatal: <span class="o">[</span>localhost<span class="o">]</span>: FAILED! <span class="o">=</span>&gt; <span class="o">{</span><span class="s2">&quot;failed&quot;</span>: <span class="nb">true</span>, <span class="s2">&quot;msg&quot;</span>: <span class="s2">&quot;&#39;non_existent&#39; is undefined&quot;</span><span class="o">}</span>
+TASK <span class="o">[</span>Non existent variable error] <span class="k">*********************************************</span>
+fatal: <span class="o">[</span>localhost]: FAILED! <span class="o">=&gt;</span> <span class="o">{</span><span class="s2">"failed"</span>: <span class="nb">true</span>, <span class="s2">"msg"</span>: <span class="s2">"'non_existent' is undefined"</span><span class="o">}</span>
 Debugger invoked
-<span class="o">(</span>debug<span class="o">)</span></code></pre></div>
+<span class="o">(</span>debug<span class="o">)</span></code></pre></figure>
 
-<p>We can also print the current result of the task by calling <code>p result</code>:</p>
+<p>We can also print the current result of the task by calling <code class="language-plaintext highlighter-rouge">p result</code>:</p>
 
-<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">{</span><span class="s1">&#39;failed&#39;</span>: True, <span class="s1">&#39;msg&#39;</span>: u<span class="s2">&quot;&#39;wrong_var&#39; is undefined&quot;</span><span class="o">}</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">{</span><span class="s1">'failed'</span>: True, <span class="s1">'msg'</span>: u<span class="s2">"'wrong_var' is undefined"</span><span class="o">}</span></code></pre></figure>
 
 <p>The error indicates that the current task has failed because the variable ‘non_existent’ is undefined. It should have been defined as ‘var1’.</p>
 
 <p>To change this we can fix the error directly in the playbook itself and re-run it. We can also make the changes directly in the debug console by changing the task variable to the correct one:</p>
 
-<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">(</span>debug<span class="o">)</span> p task.args
-<span class="o">{</span>u<span class="s1">&#39;data&#39;</span>: u<span class="s1">&#39;&#39;</span><span class="o">}</span>
-<span class="o">(</span>debug<span class="o">)</span> task.args<span class="o">[</span><span class="s1">&#39;data&#39;</span><span class="o">]=</span><span class="s1">&#39;&#39;</span>
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">(</span>debug<span class="o">)</span> p task.args
+<span class="o">{</span>u<span class="s1">'data'</span>: u<span class="s1">''</span><span class="o">}</span>
+<span class="o">(</span>debug<span class="o">)</span> task.args[<span class="s1">'data'</span><span class="o">]=</span><span class="s1">''</span>
 <span class="o">(</span>debug<span class="o">)</span> p task.args
-<span class="o">{</span>u<span class="s1">&#39;data&#39;</span>: <span class="s1">&#39;&#39;</span><span class="o">}</span>
-<span class="o">(</span>debug<span class="o">)</span> redo</code></pre></div>
+<span class="o">{</span>u<span class="s1">'data'</span>: <span class="s1">''</span><span class="o">}</span>
+<span class="o">(</span>debug<span class="o">)</span> redo</code></pre></figure>
 
-<p>Calling <code>redo</code> continues to execute the task till the end and now we have a passing task.</p>
+<p>Calling <code class="language-plaintext highlighter-rouge">redo</code> continues to execute the task till the end and now we have a passing task.</p>
 
-<p>Other commands we can issue in the debugger include <code>q</code> to quit and <code>p</code> print statements for vars, host, task and result.</p>
+<p>Other commands we can issue in the debugger include <code class="language-plaintext highlighter-rouge">q</code> to quit and <code class="language-plaintext highlighter-rouge">p</code> print statements for vars, host, task and result.</p>
 
 <p>You can read more about it on the <a href="http://docs.ansible.com/ansible/playbooks_debugger.html">Ansible Debugger</a> page.</p>
 
@@ -161,7 +161,7 @@ Debugger invoked
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -187,6 +187,8 @@ Debugger invoked
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

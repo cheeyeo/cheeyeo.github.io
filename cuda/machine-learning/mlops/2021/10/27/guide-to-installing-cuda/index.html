@@ -8,7 +8,7 @@
     <meta name="description" content="Pain-free guide to installing CUDA 11">
     <meta name="author" content="Chee Yeo">
     <meta name="keywords" content="cuda, machine-learning, mlops">
-    <link rel="canonical" href="https://www.cheeyeo.dev/cuda/machine-learning/mlops/2021/10/27/guide-to-installing-cuda/">
+    <link rel="canonical" href="http://localhost:4000/cuda/machine-learning/mlops/2021/10/27/guide-to-installing-cuda/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Guide to installing CUDA on Ubuntu 18.04 LTS">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/cuda/machine-learning/mlops/2021/10/27/guide-to-installing-cuda/">
+    <meta property="og:url" content="http://localhost:4000/cuda/machine-learning/mlops/2021/10/27/guide-to-installing-cuda/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -108,41 +108,41 @@
 
 <p>Update and install system dependencies:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">sudo apt update &amp;&amp; sudo apt upgrade</span>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">sudo apt update &amp;&amp; sudo apt upgrade
 
-<span class="go">sudo apt install build-essential \</span>
-<span class="go">cmake \</span>
-<span class="go">unzip \</span>
-<span class="go">pkg-config \</span>
-<span class="go">gcc-7 \</span>
-<span class="go">g++-7 \</span>
-<span class="go">libopenblas-dev \</span>
-<span class="go">libatlas-base-dev \</span>
-<span class="go">liblapack-dev \</span>
-<span class="go">gfortran \</span>
-<span class="go">python3-dev \</span>
-<span class="go">python3-tk \</span>
-<span class="go">python-imaging-tk</span></code></pre></div>
+sudo apt install build-essential \
+cmake \
+unzip \
+pkg-config \
+gcc-7 \
+g++-7 \
+libopenblas-dev \
+libatlas-base-dev \
+liblapack-dev \
+gfortran \
+python3-dev \
+python3-tk \
+python-imaging-tk</span></code></pre></figure>
 
 <h3 id="update--install-nvidia-device-driver">Update / Install nvidia device driver</h3>
 
 <p>Add PPA for nvidia device drivers and install <strong>nvidia-driver-470</strong></p>
 
-<p>CUDA 11.3 only works for versions of device drivers &gt;= 465. </p>
+<p>CUDA 11.3 only works for versions of device drivers &gt;= 465.</p>
 
 <p>Note: for Ubuntu, the 465 driver is linked to the 470 driver so there is no dedicated 465 version</p>
 
 <p>Install device driver:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">sudo add-apt-repository ppa:graphics-drivers/ppa</span>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">sudo add-apt-repository ppa:graphics-drivers/ppa
 
-<span class="go">sudo apt-get install nvidia-driver-470</span></code></pre></div>
+sudo apt-get install nvidia-driver-470</span></code></pre></figure>
 
 <p>After install/update, reboot the system.</p>
 
 <p>Check that the device driver is working by running nvidia-smi</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">nvidia-smi</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">nvidia-smi</span></code></pre></figure>
 
 <p>If it works, you should see the device driver version and the GPU hardware in the display.</p>
 
@@ -158,28 +158,28 @@
 
 <p>Easiest way to install CUDA is to download and run the installer.</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">wget https://developer.download.nvidia.com/compute/cuda/11.3.0/local_installers/cuda_11.3.0_465.19.01_linux.run</span>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">wget https://developer.download.nvidia.com/compute/cuda/11.3.0/local_installers/cuda_11.3.0_465.19.01_linux.run
 
-<span class="go">chmod +x cuda_11.3.0_465.19.01_linux.run</span>
+chmod +x cuda_11.3.0_465.19.01_linux.run
 
-<span class="go">sudo ./cuda_11.3.0_465.19.01_linux.run --override</span></code></pre></div>
+sudo ./cuda_11.3.0_465.19.01_linux.run --override</span></code></pre></figure>
 
 <p>This will bring up an install screen. <strong>Uncheck</strong> the 465 driver option. This is <strong>IMPORTANT</strong> else it will corrupt the device driver since we have already installed it in step 1.</p>
 
 <p>Keep the remaining options as it is.</p>
 
-<p>After installation, it will copy the cuda libs to <code>/usr/local/cuda-11.3</code> and makes a symlink to <code>/usr/local/cuda</code></p>
+<p>After installation, it will copy the cuda libs to <code class="language-plaintext highlighter-rouge">/usr/local/cuda-11.3</code> and makes a symlink to <code class="language-plaintext highlighter-rouge">/usr/local/cuda</code></p>
 
 <p>To check that cuda is installed, run <strong>nvcc</strong> compiler:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">nvcc --version</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">nvcc --version</span></code></pre></figure>
 
 <p>Note that the CUDA version reported in nvidia-smi will not match the current installed version.</p>
 
 <p>Update <strong>~/.bashrc</strong> by setting the LD_PATH and PATH variables for cuda:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">export PATH=/usr/local/cuda/bin:$PATH</span>
-<span class="go">export LD_LIBRARY_PATH=/usr/local/cuda/lib64</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><span class="gp">export PATH=/usr/local/cuda/bin:$</span>PATH
+<span class="go">export LD_LIBRARY_PATH=/usr/local/cuda/lib64</span></code></pre></figure>
 
 <h3 id="install-cudnn">Install CUDNN</h3>
 
@@ -189,17 +189,17 @@
 
 <p>For example, if we have cuda 11.3 then we need to install the deb files with <strong>..+cuda11.3..</strong> in the suffix.</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libcudnn8_8.2.1.32-1+cuda11.3_amd64.deb</span>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libcudnn8_8.2.1.32-1+cuda11.3_amd64.deb
 
-<span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libcudnn8-dev_8.2.1.32-1+cuda11.3_amd64.deb</span>
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libcudnn8-dev_8.2.1.32-1+cuda11.3_amd64.deb
 
-<span class="go">sudo dpkg -i libcudnn8_8.2.1.32-1+cuda11.3_amd64.deb</span>
+sudo dpkg -i libcudnn8_8.2.1.32-1+cuda11.3_amd64.deb
 
-<span class="go">sudo dpkg -i libcudnn8-dev_8.2.1.32-1+cuda11.3_amd64.deb</span>
+sudo dpkg -i libcudnn8-dev_8.2.1.32-1+cuda11.3_amd64.deb
 
-<span class="go">sudo ldconfig</span></code></pre></div>
+sudo ldconfig</span></code></pre></figure>
 
-<p><strong>NOTE:</strong> You need to ensure that you don’t have existing versions of CUDNN before installing a newer version. TF will pick up the older version and will throw a <code>mismatch CUDNN version</code> error during invocation.</p>
+<p><strong>NOTE:</strong> You need to ensure that you don’t have existing versions of CUDNN before installing a newer version. TF will pick up the older version and will throw a <code class="language-plaintext highlighter-rouge">mismatch CUDNN version</code> error during invocation.</p>
 
 <h3 id="install-tensorrt-libs">Install TensorRT libs</h3>
 
@@ -207,26 +207,26 @@
 
 <p>Again, ensure that the cuda versions in the filenames match the actual installed cuda version.</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-nvrtc-11-3_11.3.58-1_amd64.deb</span>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-nvrtc-11-3_11.3.58-1_amd64.deb
 
-<span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-nvrtc-dev-11-3_11.3.58-1_amd64.deb</span>
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-nvrtc-dev-11-3_11.3.58-1_amd64.deb
 
-<span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libnvinfer8_8.0.3-1+cuda11.3_amd64.deb</span>
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libnvinfer8_8.0.3-1+cuda11.3_amd64.deb
 
-<span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libnvinfer-dev_8_8.0.3-1+cuda11.3_amd64.deb</span>
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libnvinfer-dev_8_8.0.3-1+cuda11.3_amd64.deb
 
-<span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libnvinfer-plugin8_8.0.3-1+cuda11.3_amd64.deb</span>
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libnvinfer-plugin8_8.0.3-1+cuda11.3_amd64.deb
 
-<span class="go">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libnvinfer-plugin-dev_8_8.0.3-1+cuda11.3_amd64.deb</span>
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/libnvinfer-plugin-dev_8_8.0.3-1+cuda11.3_amd64.deb
 
-<span class="go">sudo dpkg -i cuda-nvrtc-11-3_11.3.58-1_amd64.deb \</span>
-<span class="go">cuda-nvrtc-dev-11-3_11.3.58-1_amd64.deb \</span>
-<span class="go">libnvinfer8_8.0.3-1+cuda11.3_amd64.deb \</span>
-<span class="go">libnvinfer-dev_8_8.0.3-1+cuda11.3_amd64.deb \</span>
-<span class="go">libnvinfer-plugin8_8.0.3-1+cuda11.3_amd64.deb \</span>
-<span class="go">libnvinfer-plugin-dev_8_8.0.3-1+cuda11.3_amd64.deb</span>
+sudo dpkg -i cuda-nvrtc-11-3_11.3.58-1_amd64.deb \
+cuda-nvrtc-dev-11-3_11.3.58-1_amd64.deb \
+libnvinfer8_8.0.3-1+cuda11.3_amd64.deb \
+libnvinfer-dev_8_8.0.3-1+cuda11.3_amd64.deb \
+libnvinfer-plugin8_8.0.3-1+cuda11.3_amd64.deb \
+libnvinfer-plugin-dev_8_8.0.3-1+cuda11.3_amd64.deb
 
-<span class="go">sudo ldconfig</span></code></pre></div>
+sudo ldconfig</span></code></pre></figure>
 
 <h3 id="install-tensorflow">Install Tensorflow</h3>
 
@@ -234,50 +234,50 @@
 
 <p>Firstly, we need to export the LD_PATH to include CUPTI from CUDA. Then we create a venv and install tensorflow:</p>
 
-<div class="highlight"><pre><code class="language-python" data-lang="python"><a name="True-1"></a><span class="n">export</span> <span class="n">LD_LIBRARY_PATH</span><span class="o">=</span><span class="err">$</span><span class="n">LD_LIBRARY_PATH</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">cuda</span><span class="o">/</span><span class="n">extras</span><span class="o">/</span><span class="n">CUPTI</span><span class="o">/</span><span class="n">lib64</span>
-<a name="True-2"></a>
-<a name="True-3"></a><span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">venv</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">venv</span>
-<a name="True-4"></a>
-<a name="True-5"></a><span class="n">source</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">venv</span> <span class="n">activate</span>
-<a name="True-6"></a>
-<a name="True-7"></a><span class="n">pip</span> <span class="n">install</span> <span class="n">tensorflow</span><span class="o">==</span><span class="mf">2.6</span><span class="o">.</span><span class="mi">0</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">export</span> <span class="n">LD_LIBRARY_PATH</span><span class="o">=</span><span class="err">$</span><span class="n">LD_LIBRARY_PATH</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">cuda</span><span class="o">/</span><span class="n">extras</span><span class="o">/</span><span class="n">CUPTI</span><span class="o">/</span><span class="n">lib64</span>
+
+<span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">venv</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">venv</span>
+
+<span class="n">source</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">venv</span> <span class="n">activate</span>
+
+<span class="n">pip</span> <span class="n">install</span> <span class="n">tensorflow</span><span class="o">==</span><span class="mf">2.6</span><span class="p">.</span><span class="mi">0</span></code></pre></figure>
 
 <h3 id="test-tensorflow-install">Test tensorflow install</h3>
 
 <p>While still in activated venv, run following test script:</p>
 
-<div class="highlight"><pre><code class="language-python" data-lang="python"><a name="True-1"></a><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="kn">as</span> <span class="nn">tf</span>
-<a name="True-2"></a>
-<a name="True-3"></a><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
-<a name="True-4"></a>    <span class="k">print</span><span class="p">(</span><span class="s">&quot;[INFO] Checking TF Gpu installed ...&quot;</span><span class="p">)</span>
-<a name="True-5"></a>    <span class="k">print</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">list_physical_devices</span><span class="p">(</span><span class="s">&quot;GPU&quot;</span><span class="p">))</span>
-<a name="True-6"></a>    <span class="k">print</span><span class="p">(</span><span class="s">&quot;TF VERSION: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">__version__</span><span class="p">))</span>
-<a name="True-7"></a>
-<a name="True-8"></a>    <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">set_log_device_placement</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
-<a name="True-9"></a>
-<a name="True-10"></a>    <span class="n">a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]])</span>
-<a name="True-11"></a>    <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]])</span>
-<a name="True-12"></a>    <span class="n">c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
-<a name="True-13"></a>
-<a name="True-14"></a>    <span class="k">print</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="n">tf</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"[INFO] Checking TF Gpu installed ..."</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">tf</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">list_physical_devices</span><span class="p">(</span><span class="s">"GPU"</span><span class="p">))</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"TF VERSION: {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="n">tf</span><span class="p">.</span><span class="n">__version__</span><span class="p">))</span>
+
+    <span class="n">tf</span><span class="p">.</span><span class="n">debugging</span><span class="p">.</span><span class="n">set_log_device_placement</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="n">tf</span><span class="p">.</span><span class="n">constant</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]])</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="p">.</span><span class="n">constant</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]])</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">tf</span><span class="p">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></code></pre></figure>
 
 <p>If all goes well, should see output similar to this:</p>
 
-<div class="highlight"><pre><code class="language-python" data-lang="python"><a name="True-1"></a><span class="o">....</span>
-<a name="True-2"></a>
-<a name="True-3"></a><span class="p">[</span><span class="n">PhysicalDevice</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;/physical_device:GPU:0&#39;</span><span class="p">,</span> <span class="n">device_type</span><span class="o">=</span><span class="s">&#39;GPU&#39;</span><span class="p">)]</span>
-<a name="True-4"></a>
-<a name="True-5"></a><span class="n">TF</span> <span class="n">VERSION</span><span class="p">:</span> <span class="mf">2.6</span><span class="o">.</span><span class="mi">0</span>
-<a name="True-6"></a>
-<a name="True-7"></a><span class="o">....</span>
-<a name="True-8"></a>
-<a name="True-9"></a><span class="mi">2021</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">15</span><span class="p">:</span><span class="mo">01</span><span class="p">:</span><span class="mf">45.114704</span><span class="p">:</span> <span class="n">I</span> <span class="n">tensorflow</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">common_runtime</span><span class="o">/</span><span class="n">gpu</span><span class="o">/</span><span class="n">gpu_device</span><span class="o">.</span><span class="n">cc</span><span class="p">:</span><span class="mi">1510</span><span class="p">]</span> <span class="n">Created</span> <span class="n">device</span> <span class="o">/</span><span class="n">job</span><span class="p">:</span><span class="n">localhost</span><span class="o">/</span><span class="n">replica</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">task</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">device</span><span class="p">:</span><span class="n">GPU</span><span class="p">:</span><span class="mi">0</span> <span class="k">with</span> <span class="mi">5018</span> <span class="n">MB</span> <span class="n">memory</span><span class="p">:</span>  <span class="o">-&gt;</span> <span class="n">device</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">NVIDIA</span> <span class="n">GeForce</span> <span class="n">GTX</span> <span class="mi">1060</span> <span class="k">with</span> <span class="n">Max</span><span class="o">-</span><span class="n">Q</span> <span class="n">Design</span><span class="p">,</span> <span class="n">pci</span> <span class="n">bus</span> <span class="nb">id</span><span class="p">:</span> <span class="mo">0000</span><span class="p">:</span><span class="mo">01</span><span class="p">:</span><span class="mf">00.0</span><span class="p">,</span> <span class="n">compute</span> <span class="n">capability</span><span class="p">:</span> <span class="mf">6.1</span>
-<a name="True-10"></a><span class="mi">2021</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">15</span><span class="p">:</span><span class="mo">01</span><span class="p">:</span><span class="mf">45.172025</span><span class="p">:</span> <span class="n">I</span> <span class="n">tensorflow</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">common_runtime</span><span class="o">/</span><span class="n">eager</span><span class="o">/</span><span class="n">execute</span><span class="o">.</span><span class="n">cc</span><span class="p">:</span><span class="mi">1161</span><span class="p">]</span> <span class="n">Executing</span> <span class="n">op</span> <span class="n">_EagerConst</span> <span class="ow">in</span> <span class="n">device</span> <span class="o">/</span><span class="n">job</span><span class="p">:</span><span class="n">localhost</span><span class="o">/</span><span class="n">replica</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">task</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">device</span><span class="p">:</span><span class="n">GPU</span><span class="p">:</span><span class="mi">0</span>
-<a name="True-11"></a><span class="mi">2021</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">15</span><span class="p">:</span><span class="mo">01</span><span class="p">:</span><span class="mf">45.172447</span><span class="p">:</span> <span class="n">I</span> <span class="n">tensorflow</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">common_runtime</span><span class="o">/</span><span class="n">eager</span><span class="o">/</span><span class="n">execute</span><span class="o">.</span><span class="n">cc</span><span class="p">:</span><span class="mi">1161</span><span class="p">]</span> <span class="n">Executing</span> <span class="n">op</span> <span class="n">_EagerConst</span> <span class="ow">in</span> <span class="n">device</span> <span class="o">/</span><span class="n">job</span><span class="p">:</span><span class="n">localhost</span><span class="o">/</span><span class="n">replica</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">task</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">device</span><span class="p">:</span><span class="n">GPU</span><span class="p">:</span><span class="mi">0</span>
-<a name="True-12"></a><span class="mi">2021</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">15</span><span class="p">:</span><span class="mo">01</span><span class="p">:</span><span class="mf">45.173005</span><span class="p">:</span> <span class="n">I</span> <span class="n">tensorflow</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">common_runtime</span><span class="o">/</span><span class="n">eager</span><span class="o">/</span><span class="n">execute</span><span class="o">.</span><span class="n">cc</span><span class="p">:</span><span class="mi">1161</span><span class="p">]</span> <span class="n">Executing</span> <span class="n">op</span> <span class="n">MatMul</span> <span class="ow">in</span> <span class="n">device</span> <span class="o">/</span><span class="n">job</span><span class="p">:</span><span class="n">localhost</span><span class="o">/</span><span class="n">replica</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">task</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">device</span><span class="p">:</span><span class="n">GPU</span><span class="p">:</span><span class="mi">0</span>
-<a name="True-13"></a><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span>
-<a name="True-14"></a><span class="p">[[</span><span class="mf">22.</span> <span class="mf">28.</span><span class="p">]</span>
-<a name="True-15"></a> <span class="p">[</span><span class="mf">49.</span> <span class="mf">64.</span><span class="p">]],</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">)</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="p">....</span>
+
+<span class="p">[</span><span class="n">PhysicalDevice</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">'/physical_device:GPU:0'</span><span class="p">,</span> <span class="n">device_type</span><span class="o">=</span><span class="s">'GPU'</span><span class="p">)]</span>
+
+<span class="n">TF</span> <span class="n">VERSION</span><span class="p">:</span> <span class="mf">2.6</span><span class="p">.</span><span class="mi">0</span>
+
+<span class="p">....</span>
+
+<span class="mi">2021</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">15</span><span class="p">:</span><span class="mi">01</span><span class="p">:</span><span class="mf">45.114704</span><span class="p">:</span> <span class="n">I</span> <span class="n">tensorflow</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">common_runtime</span><span class="o">/</span><span class="n">gpu</span><span class="o">/</span><span class="n">gpu_device</span><span class="p">.</span><span class="n">cc</span><span class="p">:</span><span class="mi">1510</span><span class="p">]</span> <span class="n">Created</span> <span class="n">device</span> <span class="o">/</span><span class="n">job</span><span class="p">:</span><span class="n">localhost</span><span class="o">/</span><span class="n">replica</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">task</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">device</span><span class="p">:</span><span class="n">GPU</span><span class="p">:</span><span class="mi">0</span> <span class="k">with</span> <span class="mi">5018</span> <span class="n">MB</span> <span class="n">memory</span><span class="p">:</span>  <span class="o">-&gt;</span> <span class="n">device</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">NVIDIA</span> <span class="n">GeForce</span> <span class="n">GTX</span> <span class="mi">1060</span> <span class="k">with</span> <span class="n">Max</span><span class="o">-</span><span class="n">Q</span> <span class="n">Design</span><span class="p">,</span> <span class="n">pci</span> <span class="n">bus</span> <span class="nb">id</span><span class="p">:</span> <span class="mi">0000</span><span class="p">:</span><span class="mi">01</span><span class="p">:</span><span class="mf">00.0</span><span class="p">,</span> <span class="n">compute</span> <span class="n">capability</span><span class="p">:</span> <span class="mf">6.1</span>
+<span class="mi">2021</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">15</span><span class="p">:</span><span class="mi">01</span><span class="p">:</span><span class="mf">45.172025</span><span class="p">:</span> <span class="n">I</span> <span class="n">tensorflow</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">common_runtime</span><span class="o">/</span><span class="n">eager</span><span class="o">/</span><span class="n">execute</span><span class="p">.</span><span class="n">cc</span><span class="p">:</span><span class="mi">1161</span><span class="p">]</span> <span class="n">Executing</span> <span class="n">op</span> <span class="n">_EagerConst</span> <span class="ow">in</span> <span class="n">device</span> <span class="o">/</span><span class="n">job</span><span class="p">:</span><span class="n">localhost</span><span class="o">/</span><span class="n">replica</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">task</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">device</span><span class="p">:</span><span class="n">GPU</span><span class="p">:</span><span class="mi">0</span>
+<span class="mi">2021</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">15</span><span class="p">:</span><span class="mi">01</span><span class="p">:</span><span class="mf">45.172447</span><span class="p">:</span> <span class="n">I</span> <span class="n">tensorflow</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">common_runtime</span><span class="o">/</span><span class="n">eager</span><span class="o">/</span><span class="n">execute</span><span class="p">.</span><span class="n">cc</span><span class="p">:</span><span class="mi">1161</span><span class="p">]</span> <span class="n">Executing</span> <span class="n">op</span> <span class="n">_EagerConst</span> <span class="ow">in</span> <span class="n">device</span> <span class="o">/</span><span class="n">job</span><span class="p">:</span><span class="n">localhost</span><span class="o">/</span><span class="n">replica</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">task</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">device</span><span class="p">:</span><span class="n">GPU</span><span class="p">:</span><span class="mi">0</span>
+<span class="mi">2021</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">27</span> <span class="mi">15</span><span class="p">:</span><span class="mi">01</span><span class="p">:</span><span class="mf">45.173005</span><span class="p">:</span> <span class="n">I</span> <span class="n">tensorflow</span><span class="o">/</span><span class="n">core</span><span class="o">/</span><span class="n">common_runtime</span><span class="o">/</span><span class="n">eager</span><span class="o">/</span><span class="n">execute</span><span class="p">.</span><span class="n">cc</span><span class="p">:</span><span class="mi">1161</span><span class="p">]</span> <span class="n">Executing</span> <span class="n">op</span> <span class="n">MatMul</span> <span class="ow">in</span> <span class="n">device</span> <span class="o">/</span><span class="n">job</span><span class="p">:</span><span class="n">localhost</span><span class="o">/</span><span class="n">replica</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">task</span><span class="p">:</span><span class="mi">0</span><span class="o">/</span><span class="n">device</span><span class="p">:</span><span class="n">GPU</span><span class="p">:</span><span class="mi">0</span>
+<span class="n">tf</span><span class="p">.</span><span class="n">Tensor</span><span class="p">(</span>
+<span class="p">[[</span><span class="mf">22.</span> <span class="mf">28.</span><span class="p">]</span>
+ <span class="p">[</span><span class="mf">49.</span> <span class="mf">64.</span><span class="p">]],</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">)</span></code></pre></figure>
 
 <p>Important lines are <strong>device /job:localhost/replica:0/task:0/device:GPU:0</strong> which indicates that TF is able to locate and access the GPU device.</p>
 
@@ -285,11 +285,11 @@
 
 <p>An alternative is to run tensorflow locally using one of the <a href="https://hub.docker.com/r/tensorflow/tensorflow/tags" target="_blank">prebuilt Tensorflow docker image</a> and bind-mount a local directory into the running container:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">docker pull tensorflow/tensorflow:2.6.0</span>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><span class="go">docker pull tensorflow/tensorflow:2.6.0
 
-<span class="go">docker run --gpus all -it --rm -v &lt;source path&gt;:&lt;target container path&gt; --entrypoint /bin/bash tensorflow/tensorflow-gpu:2.6.0</span>
-
-<span class="go">cd &lt;target container path&gt;</span></code></pre></div>
+</span><span class="gp">docker run --gpus all -it --rm -v &lt;source path&gt;</span>:&lt;target container path&gt; <span class="nt">--entrypoint</span> /bin/bash tensorflow/tensorflow-gpu:2.6.0
+<span class="go">
+</span><span class="gp">cd &lt;target container path&gt;</span></code></pre></figure>
 
 </article>
 
@@ -309,7 +309,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -335,6 +335,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

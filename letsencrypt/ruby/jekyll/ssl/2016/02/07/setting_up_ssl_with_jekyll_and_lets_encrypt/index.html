@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Using LetsEncrypt to generate SSL certs for use with a Jekyll blog.">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="jekyll, letsencrypt, ruby, ssl">
-    <link rel="canonical" href="https://www.cheeyeo.dev/letsencrypt/ruby/jekyll/ssl/2016/02/07/setting_up_ssl_with_jekyll_and_lets_encrypt/">
+    <meta name="keywords" content="letsencrypt, ruby, jekyll, ssl">
+    <link rel="canonical" href="http://localhost:4000/letsencrypt/ruby/jekyll/ssl/2016/02/07/setting_up_ssl_with_jekyll_and_lets_encrypt/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Setting up SSL with Jekyll using LetsEncrypt">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/letsencrypt/ruby/jekyll/ssl/2016/02/07/setting_up_ssl_with_jekyll_and_lets_encrypt/">
+    <meta property="og:url" content="http://localhost:4000/letsencrypt/ruby/jekyll/ssl/2016/02/07/setting_up_ssl_with_jekyll_and_lets_encrypt/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -67,15 +67,15 @@
     <ul class="article-tag">
       
       <li>
-        <a href="/categories/jekyll">jekyll</a>
-      </li>
-      
-      <li>
         <a href="/categories/letsencrypt">letsencrypt</a>
       </li>
       
       <li>
         <a href="/categories/ruby">ruby</a>
+      </li>
+      
+      <li>
+        <a href="/categories/jekyll">jekyll</a>
       </li>
       
       <li>
@@ -100,9 +100,13 @@
 <h2 id="step-1-getting-letsencrypt">Step 1: Getting letsencrypt</h2>
 <p>The first step is to clone the letsencrypt repo from github. It includes the client which you will need to generate the certificates:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">cd letsencrypt</span>
-<span class="lineno">2</span> 
-<span class="lineno">3</span> <span class="go">sudo ./letsencrypt-auto certonly -a manual --rsa-key-size 4096 -d mysite.com -d www.mysite.com</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+</pre></td><td class="code"><pre><span class="go">cd letsencrypt
+
+sudo ./letsencrypt-auto certonly -a manual --rsa-key-size 4096 -d mysite.com -d www.mysite.com</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>The above command essentially reads to generate SSL for my domains cheeyeo.uk and www.cheeyeo.uk with a rsa key size of 4096. The certonly flag means to use only the “standalone” or “webroot” plugins to request for a certificate. The letsencrypt client can integrate with Apache and Nginx servers directly but that is outside the scope of the current article.</p>
 
@@ -114,11 +118,17 @@
 
 <p>This is usually in the form of:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">Make sure your web server displays the following content at</span>
-<span class="lineno">2</span> <span class="go">http://www.yourdomain.com/.well-known/acme-challenge/weoEFKS-aasksdSKCKEIFIXCNKSKQwa3d35ds30_sDKIS before continuing:</span>
-<span class="lineno">3</span> 
-<span class="lineno">4</span> <span class="go">weoEFKS-aasksdSKCKEIFIXCNKSKQwa3d35ds30_sDKIS.Rso39djaklj3sdlkjckxmsne3a</span>
-<span class="lineno">5</span> <span class="go">Content-Type header MUST be set to text/plain.</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre></td><td class="code"><pre><span class="go">Make sure your web server displays the following content at
+http://www.yourdomain.com/.well-known/acme-challenge/weoEFKS-aasksdSKCKEIFIXCNKSKQwa3d35ds30_sDKIS before continuing:
+
+weoEFKS-aasksdSKCKEIFIXCNKSKQwa3d35ds30_sDKIS.Rso39djaklj3sdlkjckxmsne3a
+Content-Type header MUST be set to text/plain.</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>(The above is just an example and you will see a different output!)</p>
 
@@ -126,20 +136,33 @@
 
 <p>To workaround this, I added the <strong>keep_files</strong> directive to my _config.yml file:</p>
 
-<div class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="lineno">1</span> <span class="c1"># _config.yml</span>
-<span class="lineno">2</span> <span class="l-Scalar-Plain">....</span>
-<span class="lineno">3</span> 
-<span class="lineno">4</span> <span class="l-Scalar-Plain">keep_files</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span>
-<span class="lineno">5</span>   <span class="s">&#39;.well-known/acme-challenge&#39;</span>
-<span class="lineno">6</span> <span class="p-Indicator">]</span>
-<span class="lineno">7</span> 
-<span class="lineno">8</span> <span class="l-Scalar-Plain">....</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+</pre></td><td class="code"><pre><span class="c1"># _config.yml</span>
+<span class="s">....</span>
+
+<span class="na">keep_files</span><span class="pi">:</span> <span class="pi">[</span>
+  <span class="s1">'</span><span class="s">.well-known/acme-challenge'</span>
+<span class="pi">]</span>
+
+<span class="s">....</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Then we create the directories and the required file:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">cd _site/.well-known/acme-challenge</span>
-<span class="lineno">2</span> 
-<span class="lineno">3</span> <span class="go">echo -n &quot;weoEFKS-aasksdSKCKEIFIXCNKSKQwa3d35ds30_sDKIS.Rso39djaklj3sdlkjckxmsne3a&quot; &gt; &quot;weoEFKS-aasksdSKCKEIFIXCNKSKQwa3d35ds30_sDKIS&quot;</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+</pre></td><td class="code"><pre><span class="go">cd _site/.well-known/acme-challenge
+
+</span><span class="gp">echo -n "weoEFKS-aasksdSKCKEIFIXCNKSKQwa3d35ds30_sDKIS.Rso39djaklj3sdlkjckxmsne3a" &gt;</span><span class="w"> </span><span class="s2">"weoEFKS-aasksdSKCKEIFIXCNKSKQwa3d35ds30_sDKIS"</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Next, I added the <strong>_site/.well-known</strong> subdirectory into a git commit, ready to be pushed to the Heroku server. Once that is done, check that you can access it manuall by visiting the url above directly.</p>
 
@@ -155,15 +178,23 @@
 
 <p>You need to add the SSL addon to use SSL and add the certs from step 1:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">heroku addons:create ssl:endpoint</span>
-<span class="lineno">2</span> 
-<span class="lineno">3</span> <span class="go">heroku certs:add ssl/cert.pem ssl/privkey.pem ssl/chain.pem ssl/fullchain.pem</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+</pre></td><td class="code"><pre><span class="go">heroku addons:create ssl:endpoint
+
+heroku certs:add ssl/cert.pem ssl/privkey.pem ssl/chain.pem ssl/fullchain.pem</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>To check that its all setup properly:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">heroku certs</span>
-<span class="lineno">2</span> 
-<span class="lineno">3</span> <span class="go">heroku certs:info</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+</pre></td><td class="code"><pre><span class="go">heroku certs
+
+heroku certs:info</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>If it all goes well, you should see a dedicated sslenpoint with an ending domain of <strong>herokussl.com</strong> which you need for step 3. Also, check that the heroku certs:info return <strong>Trusted</strong> field as <strong>True</strong> before proceeding further.</p>
 
@@ -173,19 +204,31 @@
 
 <p>Once done you should see something like the following:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">host www.mysite.com</span>
-<span class="lineno">2</span> 
-<span class="lineno">3</span> <span class="go">mysite.herokussl.com is an alias for xxxxxxxx</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+</pre></td><td class="code"><pre><span class="go">host www.mysite.com
+
+mysite.herokussl.com is an alias for xxxxxxxx</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>To check that the ssl is successfully deployed, run the following:</p>
 
-<div class="highlight"><pre><code class="language-console" data-lang="console"><span class="lineno">1</span> <span class="go">curl -kvI www.mysite.com</span>
-<span class="lineno">2</span> 
-<span class="lineno">3</span> <span class="go">* Connected to www.mysite.com (XXXXXX) port 443 (#0)</span>
-<span class="lineno">4</span> <span class="go">* TLS 1.2 connection using TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</span>
-<span class="lineno">5</span> <span class="go">* Server certificate: mysite.com</span>
-<span class="lineno">6</span> <span class="go">* Server certificate: Let&#39;s Encrypt Authority X1</span>
-<span class="lineno">7</span> <span class="go">* Server certificate: DST Root CA X3</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-console" data-lang="console"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+</pre></td><td class="code"><pre><span class="go">curl -kvI www.mysite.com
+
+</span><span class="gp">* Connected to www.mysite.com (XXXXXX) port 443 (#</span>0<span class="o">)</span>
+<span class="go">* TLS 1.2 connection using TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+* Server certificate: mysite.com
+* Server certificate: Let's Encrypt Authority X1
+* Server certificate: DST Root CA X3</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <h2 id="step-4-jekyll-and-heroku-specific-issues">Step 4: Jekyll and heroku specific issues</h2>
 
@@ -227,7 +270,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -253,6 +296,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

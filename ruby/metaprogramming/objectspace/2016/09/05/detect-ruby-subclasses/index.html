@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Dynamically detecting subclasses in Ruby">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="metaprogramming, objectspace, ruby">
-    <link rel="canonical" href="https://www.cheeyeo.dev/ruby/metaprogramming/objectspace/2016/09/05/detect-ruby-subclasses/">
+    <meta name="keywords" content="ruby, metaprogramming, objectspace">
+    <link rel="canonical" href="http://localhost:4000/ruby/metaprogramming/objectspace/2016/09/05/detect-ruby-subclasses/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Detect subclasses in Ruby">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/ruby/metaprogramming/objectspace/2016/09/05/detect-ruby-subclasses/">
+    <meta property="og:url" content="http://localhost:4000/ruby/metaprogramming/objectspace/2016/09/05/detect-ruby-subclasses/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -67,15 +67,15 @@
     <ul class="article-tag">
       
       <li>
+        <a href="/categories/ruby">ruby</a>
+      </li>
+      
+      <li>
         <a href="/categories/metaprogramming">metaprogramming</a>
       </li>
       
       <li>
         <a href="/categories/objectspace">objectspace</a>
-      </li>
-      
-      <li>
-        <a href="/categories/ruby">ruby</a>
       </li>
       
     </ul>
@@ -93,70 +93,117 @@
 <article class="post-content top-border">
   <p>I recently came across a problem which involved being able to select subclasses dynamically based on user input.</p>
 
-<p>Given a master class of say <code>A</code> and a user input string, we should be able to instantiate a new subclass of <code>A</code>.</p>
+<p>Given a master class of say <code class="language-plaintext highlighter-rouge">A</code> and a user input string, we should be able to instantiate a new subclass of <code class="language-plaintext highlighter-rouge">A</code>.</p>
 
-<p>If we are using Rails framework, we can use <code>ActiveSupport#CoreExt</code> which has monkey-patched <code>Class</code> with two additional methods: <code>descendants</code> and <code>subclasses</code></p>
+<p>If we are using Rails framework, we can use <code class="language-plaintext highlighter-rouge">ActiveSupport#CoreExt</code> which has monkey-patched <code class="language-plaintext highlighter-rouge">Class</code> with two additional methods: <code class="language-plaintext highlighter-rouge">descendants</code> and <code class="language-plaintext highlighter-rouge">subclasses</code></p>
 
 <p>The source code from ActiveSupport is as follows:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">Class</span>
-<span class="lineno"> 2</span>   <span class="k">def</span> <span class="nf">descendants</span>
-<span class="lineno"> 3</span>     <span class="n">descendants</span> <span class="o">=</span> <span class="o">[]</span>
-<span class="lineno"> 4</span>     <span class="no">ObjectSpace</span><span class="o">.</span><span class="n">each_object</span><span class="p">(</span><span class="n">singleton_class</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">k</span><span class="o">|</span>
-<span class="lineno"> 5</span>       <span class="c1"># prepends to front of descendants</span>
-<span class="lineno"> 6</span>       <span class="n">descendants</span><span class="o">.</span><span class="n">unshift</span> <span class="n">k</span> <span class="k">unless</span> <span class="n">k</span> <span class="o">==</span> <span class="nb">self</span>
-<span class="lineno"> 7</span>     <span class="k">end</span>
-<span class="lineno"> 8</span> 
-<span class="lineno"> 9</span>     <span class="n">descendants</span>
-<span class="lineno">10</span>   <span class="k">end</span>
-<span class="lineno">11</span> 
-<span class="lineno">12</span>   <span class="k">def</span> <span class="nf">subclasses</span>
-<span class="lineno">13</span>     <span class="n">subclasses</span><span class="p">,</span> <span class="n">chain</span> <span class="o">=</span> <span class="o">[]</span><span class="p">,</span> <span class="n">descendants</span>
-<span class="lineno">14</span>     <span class="n">chain</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">k</span><span class="o">|</span>
-<span class="lineno">15</span>       <span class="n">subclasses</span> <span class="o">&lt;&lt;</span> <span class="n">k</span> <span class="k">unless</span> <span class="n">chain</span><span class="o">.</span><span class="n">any?</span> <span class="p">{</span> <span class="o">|</span><span class="n">c</span><span class="o">|</span> <span class="n">c</span> <span class="o">&gt;</span> <span class="n">k</span> <span class="p">}</span>
-<span class="lineno">16</span>     <span class="k">end</span>
-<span class="lineno">17</span>     <span class="n">subclasses</span>
-<span class="lineno">18</span>   <span class="k">end</span>
-<span class="lineno">19</span> <span class="k">end</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+</pre></td><td class="code"><pre><span class="k">class</span> <span class="nc">Class</span>
+  <span class="k">def</span> <span class="nf">descendants</span>
+    <span class="n">descendants</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="no">ObjectSpace</span><span class="p">.</span><span class="nf">each_object</span><span class="p">(</span><span class="n">singleton_class</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">k</span><span class="o">|</span>
+      <span class="c1"># prepends to front of descendants</span>
+      <span class="n">descendants</span><span class="p">.</span><span class="nf">unshift</span> <span class="n">k</span> <span class="k">unless</span> <span class="n">k</span> <span class="o">==</span> <span class="nb">self</span>
+    <span class="k">end</span>
+
+    <span class="n">descendants</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">subclasses</span>
+    <span class="n">subclasses</span><span class="p">,</span> <span class="n">chain</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">descendants</span>
+    <span class="n">chain</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">k</span><span class="o">|</span>
+      <span class="n">subclasses</span> <span class="o">&lt;&lt;</span> <span class="n">k</span> <span class="k">unless</span> <span class="n">chain</span><span class="p">.</span><span class="nf">any?</span> <span class="p">{</span> <span class="o">|</span><span class="n">c</span><span class="o">|</span> <span class="n">c</span> <span class="o">&gt;</span> <span class="n">k</span> <span class="p">}</span>
+    <span class="k">end</span>
+    <span class="n">subclasses</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Given the following class hierarchy we can use the extensions like so:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="nb">require</span> <span class="s1">&#39;active_support&#39;</span>
-<span class="lineno"> 2</span> <span class="nb">require</span> <span class="s1">&#39;active_support/core_ext&#39;</span>
-<span class="lineno"> 3</span> 
-<span class="lineno"> 4</span> <span class="k">class</span> <span class="nc">A</span><span class="p">;</span> <span class="k">end</span>
-<span class="lineno"> 5</span> <span class="k">class</span> <span class="nc">B</span> <span class="o">&lt;</span> <span class="n">A</span><span class="p">;</span> <span class="k">end</span>
-<span class="lineno"> 6</span> <span class="k">class</span> <span class="nc">C</span> <span class="o">&lt;</span> <span class="n">B</span><span class="p">;</span> <span class="k">end</span>
-<span class="lineno"> 7</span> 
-<span class="lineno"> 8</span> <span class="nb">puts</span> <span class="n">A</span><span class="o">.</span><span class="n">descendants</span> <span class="c1"># =&gt; [B,C]</span>
-<span class="lineno"> 9</span> 
-<span class="lineno">10</span> <span class="nb">puts</span> <span class="n">A</span><span class="o">.</span><span class="n">subclasses</span> <span class="c1"># =&gt; [B]</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+</pre></td><td class="code"><pre><span class="nb">require</span> <span class="s1">'active_support'</span>
+<span class="nb">require</span> <span class="s1">'active_support/core_ext'</span>
 
-<p>Calling <code>ObjectSpace.each_object</code> with a class or module argument returns a list of matching classes or modules including its subclasses.</p>
+<span class="k">class</span> <span class="nc">A</span><span class="p">;</span> <span class="k">end</span>
+<span class="k">class</span> <span class="nc">B</span> <span class="o">&lt;</span> <span class="no">A</span><span class="p">;</span> <span class="k">end</span>
+<span class="k">class</span> <span class="nc">C</span> <span class="o">&lt;</span> <span class="no">B</span><span class="p">;</span> <span class="k">end</span>
 
-<p>In this case, we are passing in <code>ObjectSpace.each_object(A.singleton_class)</code> which returns matching classes whose singleton class is either <code>A.singleton_class</code> or a subclass of it:</p>
+<span class="nb">puts</span> <span class="no">A</span><span class="p">.</span><span class="nf">descendants</span> <span class="c1"># =&gt; [B,C]</span>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="no">ObjectSpace</span><span class="o">.</span><span class="n">each_object</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">singleton_class</span><span class="p">)</span><span class="o">.</span><span class="n">to_a</span> <span class="c1"># =&gt; [A,B,C]</span>
-<span class="lineno">2</span> 
-<span class="lineno">3</span> <span class="n">B</span><span class="o">.</span><span class="n">singleton_class</span><span class="o">.</span><span class="n">superclass</span> <span class="c1"># =&gt; # &lt;Class:A&gt;</span>
-<span class="lineno">4</span> 
-<span class="lineno">5</span> <span class="n">C</span><span class="o">.</span><span class="n">singleton_class</span><span class="o">.</span><span class="n">superclass</span> <span class="c1"># =&gt; # &lt;Class:B&gt;</span>
-<span class="lineno">6</span> 
-<span class="lineno">7</span> <span class="n">C</span><span class="o">.</span><span class="n">singleton_class</span><span class="o">.</span><span class="n">superclass</span><span class="o">.</span><span class="n">superclass</span> <span class="c1"># =&gt; # &lt;Class:A&gt;</span></code></pre></div>
+<span class="nb">puts</span> <span class="no">A</span><span class="p">.</span><span class="nf">subclasses</span> <span class="c1"># =&gt; [B]</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
-<p>Calling <code>A.descendants</code> returns only <code>[B,C]</code> as within the <code>each_object</code> loop it excludes <code>A</code> itself.</p>
+<p>Calling <code class="language-plaintext highlighter-rouge">ObjectSpace.each_object</code> with a class or module argument returns a list of matching classes or modules including its subclasses.</p>
 
-<p>Calling <code>A.subclasses</code> will return only direct subclasses, namely <code>[B]</code>. This is because it loops through the descendants list and makes a class comparison whereby only the top level subclasses are selected:</p>
+<p>In this case, we are passing in <code class="language-plaintext highlighter-rouge">ObjectSpace.each_object(A.singleton_class)</code> which returns matching classes whose singleton class is either <code class="language-plaintext highlighter-rouge">A.singleton_class</code> or a subclass of it:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="n">B</span> <span class="o">&gt;</span> <span class="n">C</span> <span class="c1"># =&gt; true</span>
-<span class="lineno">2</span> 
-<span class="lineno">3</span> <span class="n">B</span> <span class="o">&gt;</span> <span class="n">B</span> <span class="c1"># =&gt; false</span>
-<span class="lineno">4</span> 
-<span class="lineno">5</span> <span class="n">C</span> <span class="o">&gt;</span> <span class="n">C</span> <span class="c1"># =&gt; false</span>
-<span class="lineno">6</span> 
-<span class="lineno">7</span> <span class="n">C</span> <span class="o">&gt;</span> <span class="n">B</span> <span class="c1"># =&gt; false</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+</pre></td><td class="code"><pre><span class="no">ObjectSpace</span><span class="p">.</span><span class="nf">each_object</span><span class="p">(</span><span class="no">A</span><span class="p">.</span><span class="nf">singleton_class</span><span class="p">).</span><span class="nf">to_a</span> <span class="c1"># =&gt; [A,B,C]</span>
 
-<p><code>ObjectSpace</code> module is certainly a powerful introspection tool to have in your toolbelt if you need detailed analytics about the objects in your current ruby process.</p>
+<span class="no">B</span><span class="p">.</span><span class="nf">singleton_class</span><span class="p">.</span><span class="nf">superclass</span> <span class="c1"># =&gt; # &lt;Class:A&gt;</span>
+
+<span class="no">C</span><span class="p">.</span><span class="nf">singleton_class</span><span class="p">.</span><span class="nf">superclass</span> <span class="c1"># =&gt; # &lt;Class:B&gt;</span>
+
+<span class="no">C</span><span class="p">.</span><span class="nf">singleton_class</span><span class="p">.</span><span class="nf">superclass</span><span class="p">.</span><span class="nf">superclass</span> <span class="c1"># =&gt; # &lt;Class:A&gt;</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>Calling <code class="language-plaintext highlighter-rouge">A.descendants</code> returns only <code class="language-plaintext highlighter-rouge">[B,C]</code> as within the <code class="language-plaintext highlighter-rouge">each_object</code> loop it excludes <code class="language-plaintext highlighter-rouge">A</code> itself.</p>
+
+<p>Calling <code class="language-plaintext highlighter-rouge">A.subclasses</code> will return only direct subclasses, namely <code class="language-plaintext highlighter-rouge">[B]</code>. This is because it loops through the descendants list and makes a class comparison whereby only the top level subclasses are selected:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+</pre></td><td class="code"><pre><span class="no">B</span> <span class="o">&gt;</span> <span class="no">C</span> <span class="c1"># =&gt; true</span>
+
+<span class="no">B</span> <span class="o">&gt;</span> <span class="no">B</span> <span class="c1"># =&gt; false</span>
+
+<span class="no">C</span> <span class="o">&gt;</span> <span class="no">C</span> <span class="c1"># =&gt; false</span>
+
+<span class="no">C</span> <span class="o">&gt;</span> <span class="no">B</span> <span class="c1"># =&gt; false</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p><code class="language-plaintext highlighter-rouge">ObjectSpace</code> module is certainly a powerful introspection tool to have in your toolbelt if you need detailed analytics about the objects in your current ruby process.</p>
 
 <p>Stay curious and keep hacking!</p>
 
@@ -183,7 +230,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -209,6 +256,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

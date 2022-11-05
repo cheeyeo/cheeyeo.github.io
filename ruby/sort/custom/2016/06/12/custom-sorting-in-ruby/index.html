@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Sorting with custom attributes in Ruby">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="custom, ruby, sort">
-    <link rel="canonical" href="https://www.cheeyeo.dev/ruby/sort/custom/2016/06/12/custom-sorting-in-ruby/">
+    <meta name="keywords" content="ruby, sort, custom">
+    <link rel="canonical" href="http://localhost:4000/ruby/sort/custom/2016/06/12/custom-sorting-in-ruby/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Custom sorting in Ruby">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/ruby/sort/custom/2016/06/12/custom-sorting-in-ruby/">
+    <meta property="og:url" content="http://localhost:4000/ruby/sort/custom/2016/06/12/custom-sorting-in-ruby/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -67,15 +67,15 @@
     <ul class="article-tag">
       
       <li>
-        <a href="/categories/custom">custom</a>
-      </li>
-      
-      <li>
         <a href="/categories/ruby">ruby</a>
       </li>
       
       <li>
         <a href="/categories/sort">sort</a>
+      </li>
+      
+      <li>
+        <a href="/categories/custom">custom</a>
       </li>
       
     </ul>
@@ -91,73 +91,125 @@
 
 
 <article class="post-content top-border">
-  <p>Assume we have a <code>Severity</code> class which represents the level of severity which may arise in a system.</p>
+  <p>Assume we have a <code class="language-plaintext highlighter-rouge">Severity</code> class which represents the level of severity which may arise in a system.</p>
 
-<p>This class has a single attribute: a severity string. The levels of severities can range from <code>"info, low, medium, high"</code>. If we try to sort a collection of severities in ascending order by its level, we get the following result:</p>
+<p>This class has a single attribute: a severity string. The levels of severities can range from <code class="language-plaintext highlighter-rouge">"info, low, medium, high"</code>. If we try to sort a collection of severities in ascending order by its level, we get the following result:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="o">[</span><span class="s2">&quot;info&quot;</span><span class="p">,</span> <span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="p">,</span> <span class="s2">&quot;medium&quot;</span><span class="o">]</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+</pre></td><td class="code"><pre><span class="p">[</span><span class="s2">"info"</span><span class="p">,</span> <span class="s2">"low"</span><span class="p">,</span> <span class="s2">"high"</span><span class="p">,</span> <span class="s2">"medium"</span><span class="p">]</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Likewise for a sort in DESC order based on its levels:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="o">[</span><span class="s2">&quot;medium&quot;</span><span class="p">,</span> <span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="p">,</span> <span class="s2">&quot;info&quot;</span><span class="o">]</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+</pre></td><td class="code"><pre><span class="p">[</span><span class="s2">"medium"</span><span class="p">,</span> <span class="s2">"low"</span><span class="p">,</span> <span class="s2">"high"</span><span class="p">,</span> <span class="s2">"info"</span><span class="p">]</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
-<p>The issue here is that the sort order does not represent the inherent meaning of the levels themselves. We want the <code>"high"</code> level to be at the front of the list when sorting in descending order and <code>"low"</code> to be at the front in ascending order. Ruby is sorting lexically and does not capture the inherent meaning of the levels.</p>
+<p>The issue here is that the sort order does not represent the inherent meaning of the levels themselves. We want the <code class="language-plaintext highlighter-rouge">"high"</code> level to be at the front of the list when sorting in descending order and <code class="language-plaintext highlighter-rouge">"low"</code> to be at the front in ascending order. Ruby is sorting lexically and does not capture the inherent meaning of the levels.</p>
 
 <p>We can develop a custom comparator class whereby we implement the sort order ourselves.</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">class</span> <span class="nc">Severity</span>
-<span class="lineno"> 2</span>   <span class="kp">attr_accessor</span> <span class="ss">:level</span>
-<span class="lineno"> 3</span> 
-<span class="lineno"> 4</span>   <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
-<span class="lineno"> 5</span>     <span class="vi">@level</span> <span class="o">=</span> <span class="n">level</span>
-<span class="lineno"> 6</span>   <span class="k">end</span>
-<span class="lineno"> 7</span> <span class="k">end</span>
-<span class="lineno"> 8</span> 
-<span class="lineno"> 9</span> <span class="k">module</span> <span class="nn">SeverityComparator</span>
-<span class="lineno">10</span>   <span class="no">LEVELS</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;info&quot;</span><span class="p">,</span> <span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="s2">&quot;medium&quot;</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="o">]</span>
-<span class="lineno">11</span> 
-<span class="lineno">12</span>   <span class="kp">module_function</span>
-<span class="lineno">13</span>   <span class="k">def</span> <span class="nf">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
-<span class="lineno">14</span>     <span class="no">LEVELS</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">level</span><span class="p">)</span> <span class="o">&lt;=&gt;</span> <span class="no">LEVELS</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">level</span><span class="p">)</span>
-<span class="lineno">15</span>   <span class="k">end</span>
-<span class="lineno">16</span> <span class="k">end</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+</pre></td><td class="code"><pre><span class="k">class</span> <span class="nc">Severity</span>
+  <span class="nb">attr_accessor</span> <span class="ss">:level</span>
 
-<p>The SeverityComparator module holds an array <code>LABELS</code> whereby we predefine the severity levels in the order we want.</p>
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+    <span class="vi">@level</span> <span class="o">=</span> <span class="n">level</span>
+  <span class="k">end</span>
+<span class="k">end</span>
 
-<p>Within the <code>compare</code> method, we compare the position of the object’s index within the <code>LEVELS</code> array based on its level attribute. For example:</p>
+<span class="k">module</span> <span class="nn">SeverityComparator</span>
+  <span class="no">LEVELS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"info"</span><span class="p">,</span> <span class="s2">"low"</span><span class="p">,</span> <span class="s2">"medium"</span><span class="p">,</span> <span class="s2">"high"</span><span class="p">]</span>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="n">arr</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;info&quot;</span><span class="p">,</span> <span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="s2">&quot;medium&quot;</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="o">].</span><span class="n">each_with_object</span><span class="p">(</span><span class="o">[]</span><span class="p">){</span><span class="o">|</span><span class="n">a</span><span class="p">,</span> <span class="n">memo</span><span class="o">|</span>
-<span class="lineno">2</span>   <span class="n">memo</span> <span class="o">&lt;&lt;</span> <span class="no">Severity</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-<span class="lineno">3</span> <span class="p">}</span>
-<span class="lineno">4</span> 
-<span class="lineno">5</span> <span class="n">arr</span><span class="o">.</span><span class="n">sort</span><span class="p">{</span><span class="o">|</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="o">|</span> <span class="no">SeverityComparator</span><span class="o">.</span><span class="n">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)}</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:level</span><span class="p">)</span>
-<span class="lineno">6</span> <span class="c1"># =&gt; [&quot;info&quot;, &quot;low&quot;, &quot;medium&quot;, &quot;high&quot;]</span>
-<span class="lineno">7</span> 
-<span class="lineno">8</span> <span class="n">arr</span><span class="o">.</span><span class="n">sort</span><span class="p">{</span><span class="o">|</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="o">|</span> <span class="o">-</span><span class="no">SeverityComparator</span><span class="o">.</span><span class="n">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)}</span><span class="o">.</span><span class="n">amp</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:level</span><span class="p">)</span>
-<span class="lineno">9</span> <span class="c1">#=&gt; [&quot;high&quot;, &quot;medium&quot;, &quot;low&quot;, &quot;info&quot;]</span></code></pre></div>
+  <span class="kp">module_function</span>
+  <span class="k">def</span> <span class="nf">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="no">LEVELS</span><span class="p">.</span><span class="nf">index</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="nf">level</span><span class="p">)</span> <span class="o">&lt;=&gt;</span> <span class="no">LEVELS</span><span class="p">.</span><span class="nf">index</span><span class="p">(</span><span class="n">b</span><span class="p">.</span><span class="nf">level</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
-<p>Supposing that we also discover that the severity levels can also range from <code>"1.0" to "5.0"</code>. The flexibility of this approach means that we can just add new levels to the <code>LEVELS</code> array and still use the same comparator:</p>
+<p>The SeverityComparator module holds an array <code class="language-plaintext highlighter-rouge">LABELS</code> whereby we predefine the severity levels in the order we want.</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno"> 1</span> <span class="k">module</span> <span class="nn">SeverityComparator</span>
-<span class="lineno"> 2</span>   <span class="c1"># adding new levels</span>
-<span class="lineno"> 3</span>   <span class="no">LEVELS</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;1.0&quot;</span><span class="p">,</span> <span class="s2">&quot;2.0&quot;</span><span class="p">,</span> <span class="s2">&quot;3.0&quot;</span><span class="p">,</span> <span class="s2">&quot;4.0&quot;</span><span class="p">,</span> <span class="s2">&quot;5.0&quot;</span><span class="p">,</span> <span class="s2">&quot;info&quot;</span><span class="p">,</span> <span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="s2">&quot;medium&quot;</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="o">]</span>
-<span class="lineno"> 4</span> 
-<span class="lineno"> 5</span>   <span class="c1"># .....</span>
-<span class="lineno"> 6</span> <span class="k">end</span>
-<span class="lineno"> 7</span> 
-<span class="lineno"> 8</span> <span class="n">arr2</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;1.0&quot;</span><span class="p">,</span> <span class="s2">&quot;2.0&quot;</span><span class="p">,</span> <span class="s2">&quot;3.0&quot;</span><span class="p">,</span> <span class="s2">&quot;4.0&quot;</span><span class="p">,</span> <span class="s2">&quot;5.0&quot;</span><span class="o">].</span><span class="n">each_with_object</span><span class="p">(</span><span class="o">[]</span><span class="p">){</span><span class="o">|</span><span class="n">a</span><span class="p">,</span> <span class="n">memo</span><span class="o">|</span>
-<span class="lineno"> 9</span>   <span class="n">memo</span> <span class="o">&lt;&lt;</span> <span class="no">Severity</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-<span class="lineno">10</span> <span class="p">}</span>
-<span class="lineno">11</span> 
-<span class="lineno">12</span> <span class="n">arr2</span><span class="o">.</span><span class="n">sort</span><span class="p">{</span><span class="o">|</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="o">|</span> <span class="no">SeverityComparator</span><span class="o">.</span><span class="n">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)}</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:level</span><span class="p">)</span>
-<span class="lineno">13</span> <span class="c1"># =&gt; [&quot;1.0&quot;, &quot;2.0&quot;, &quot;3.0&quot;, &quot;4.0&quot;, &quot;5.0&quot;]</span>
-<span class="lineno">14</span> 
-<span class="lineno">15</span> <span class="n">arr2</span><span class="o">.</span><span class="n">sort</span><span class="p">{</span><span class="o">|</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="o">|</span> <span class="o">-</span><span class="no">SeverityComparator</span><span class="o">.</span><span class="n">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)}</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:level</span><span class="p">)</span>
-<span class="lineno">16</span> <span class="c1"># =&gt; [&quot;5.0&quot;, &quot;4.0&quot;, &quot;3.0&quot;, &quot;2.0&quot;, &quot;1.0&quot;]</span>
-<span class="lineno">17</span> 
-<span class="lineno">18</span> <span class="c1"># sorting still works as before</span>
-<span class="lineno">19</span> <span class="n">arr</span><span class="o">.</span><span class="n">sort</span><span class="p">{</span><span class="o">|</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="o">|</span> <span class="no">SeverityComparator</span><span class="o">.</span><span class="n">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)}</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:level</span><span class="p">)</span>
-<span class="lineno">20</span> <span class="c1"># =&gt; [&quot;info&quot;, &quot;low&quot;, &quot;medium&quot;, &quot;high&quot;]</span></code></pre></div>
+<p>Within the <code class="language-plaintext highlighter-rouge">compare</code> method, we compare the position of the object’s index within the <code class="language-plaintext highlighter-rouge">LEVELS</code> array based on its level attribute. For example:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre></td><td class="code"><pre><span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"info"</span><span class="p">,</span> <span class="s2">"low"</span><span class="p">,</span> <span class="s2">"medium"</span><span class="p">,</span> <span class="s2">"high"</span><span class="p">].</span><span class="nf">each_with_object</span><span class="p">([]){</span><span class="o">|</span><span class="n">a</span><span class="p">,</span> <span class="n">memo</span><span class="o">|</span>
+  <span class="n">memo</span> <span class="o">&lt;&lt;</span> <span class="no">Severity</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="n">arr</span><span class="p">.</span><span class="nf">sort</span><span class="p">{</span><span class="o">|</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="o">|</span> <span class="no">SeverityComparator</span><span class="p">.</span><span class="nf">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)}.</span><span class="nf">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:level</span><span class="p">)</span>
+<span class="c1"># =&gt; ["info", "low", "medium", "high"]</span>
+
+<span class="n">arr</span><span class="p">.</span><span class="nf">sort</span><span class="p">{</span><span class="o">|</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="o">|</span> <span class="o">-</span><span class="no">SeverityComparator</span><span class="p">.</span><span class="nf">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)}.</span><span class="nf">amp</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:level</span><span class="p">)</span>
+<span class="c1">#=&gt; ["high", "medium", "low", "info"]</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>Supposing that we also discover that the severity levels can also range from <code class="language-plaintext highlighter-rouge">"1.0" to "5.0"</code>. The flexibility of this approach means that we can just add new levels to the <code class="language-plaintext highlighter-rouge">LEVELS</code> array and still use the same comparator:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+</pre></td><td class="code"><pre><span class="k">module</span> <span class="nn">SeverityComparator</span>
+  <span class="c1"># adding new levels</span>
+  <span class="no">LEVELS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"1.0"</span><span class="p">,</span> <span class="s2">"2.0"</span><span class="p">,</span> <span class="s2">"3.0"</span><span class="p">,</span> <span class="s2">"4.0"</span><span class="p">,</span> <span class="s2">"5.0"</span><span class="p">,</span> <span class="s2">"info"</span><span class="p">,</span> <span class="s2">"low"</span><span class="p">,</span> <span class="s2">"medium"</span><span class="p">,</span> <span class="s2">"high"</span><span class="p">]</span>
+
+  <span class="c1"># .....</span>
+<span class="k">end</span>
+
+<span class="n">arr2</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"1.0"</span><span class="p">,</span> <span class="s2">"2.0"</span><span class="p">,</span> <span class="s2">"3.0"</span><span class="p">,</span> <span class="s2">"4.0"</span><span class="p">,</span> <span class="s2">"5.0"</span><span class="p">].</span><span class="nf">each_with_object</span><span class="p">([]){</span><span class="o">|</span><span class="n">a</span><span class="p">,</span> <span class="n">memo</span><span class="o">|</span>
+  <span class="n">memo</span> <span class="o">&lt;&lt;</span> <span class="no">Severity</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="n">arr2</span><span class="p">.</span><span class="nf">sort</span><span class="p">{</span><span class="o">|</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="o">|</span> <span class="no">SeverityComparator</span><span class="p">.</span><span class="nf">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)}.</span><span class="nf">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:level</span><span class="p">)</span>
+<span class="c1"># =&gt; ["1.0", "2.0", "3.0", "4.0", "5.0"]</span>
+
+<span class="n">arr2</span><span class="p">.</span><span class="nf">sort</span><span class="p">{</span><span class="o">|</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="o">|</span> <span class="o">-</span><span class="no">SeverityComparator</span><span class="p">.</span><span class="nf">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)}.</span><span class="nf">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:level</span><span class="p">)</span>
+<span class="c1"># =&gt; ["5.0", "4.0", "3.0", "2.0", "1.0"]</span>
+
+<span class="c1"># sorting still works as before</span>
+<span class="n">arr</span><span class="p">.</span><span class="nf">sort</span><span class="p">{</span><span class="o">|</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="o">|</span> <span class="no">SeverityComparator</span><span class="p">.</span><span class="nf">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)}.</span><span class="nf">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:level</span><span class="p">)</span>
+<span class="c1"># =&gt; ["info", "low", "medium", "high"]</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Keep Hacking!!!</p>
 
@@ -186,7 +238,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -212,6 +264,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

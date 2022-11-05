@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Introduction to types of Autoencoders">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="autoencoders, deep-learning, machine-learning, tensorflow">
-    <link rel="canonical" href="https://www.cheeyeo.dev/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/23/types-of-autoencoders-part1/">
+    <meta name="keywords" content="machine-learning, deep-learning, autoencoders, tensorflow">
+    <link rel="canonical" href="http://localhost:4000/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/23/types-of-autoencoders-part1/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Types of Autoencoders Part 1">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/23/types-of-autoencoders-part1/">
+    <meta property="og:url" content="http://localhost:4000/machine-learning/deep-learning/autoencoders/tensorflow/2020/03/23/types-of-autoencoders-part1/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -67,7 +67,7 @@
     <ul class="article-tag">
       
       <li>
-        <a href="/categories/autoencoders">autoencoders</a>
+        <a href="/categories/machine-learning">machine-learning</a>
       </li>
       
       <li>
@@ -75,7 +75,7 @@
       </li>
       
       <li>
-        <a href="/categories/machine-learning">machine-learning</a>
+        <a href="/categories/autoencoders">autoencoders</a>
       </li>
       
       <li>
@@ -95,7 +95,7 @@
 
 
 <article class="post-content top-border">
-  <p>In this post, I will be discussing two commonly used types of Autoencoders: <code>Undercomplete, and Overcomplete</code>.</p>
+  <p>In this post, I will be discussing two commonly used types of Autoencoders: <code class="language-plaintext highlighter-rouge">Undercomplete, and Overcomplete</code>.</p>
 
 <p>Autoencoders are a form of unsupervised neural network trained to map input to output. Its hidden layers learn an approximation of the original input, known as the latent space.</p>
 
@@ -105,11 +105,13 @@
 
 <p>An Autoencoder comprises of encoder and decoder. The encoder takes original input and outputs a different representation. The decoder takes the different representation learnt by encoder and converts it to original format.</p>
 
-<p>If we represent encoder function as <code>h = f(x)</code> and decoder function as <code>r = g(h)</code>, where h represents the latent space, r represents the reconstructed input, then an autoencoder tries to learn <code>g(f(x))</code> for all x as input.</p>
+<p>If we represent encoder function as <code class="language-plaintext highlighter-rouge">h = f(x)</code> and decoder function as <code class="language-plaintext highlighter-rouge">r = g(h)</code>, where h represents the latent space, r represents the reconstructed input, then an autoencoder tries to learn <code class="language-plaintext highlighter-rouge">g(f(x))</code> for all x as input.</p>
 
 <p>The loss function an Autoencoder is minimizing will be:</p>
 
-<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno">1</span> <span class="n">L</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+</pre></td><td class="code"><pre><span class="n">L</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>This is usually set to mean squared loss/error.</p>
 
@@ -121,53 +123,93 @@
 
 <p>To prevent Autoencoders from copying the input data perfectly, we place/impose restrictions on its design. These restrictions prevent them from only learning the identity function and forces it to capture more salient features/properties of the data.</p>
 
-<p>A common restriction would be to restrict the latent space dimension <code>h</code>, to be much smaller than the input feature size. This is the most common type of Autoencoder and is known as an <code>Undercomplete Autoencoder</code>.</p>
+<p>A common restriction would be to restrict the latent space dimension <code class="language-plaintext highlighter-rouge">h</code>, to be much smaller than the input feature size. This is the most common type of Autoencoder and is known as an <code class="language-plaintext highlighter-rouge">Undercomplete Autoencoder</code>.</p>
 
 <p>For instance, if the input size is 28, the latent space could be 16.</p>
 
 <p>Since Autoencoders are still neural networks, we can use pre-existing layers in tensorflow to construct them.</p>
 
-<p>The example below shows an undercomplete autoencoder which takes in a random sample of floats with <code>32 dimensions</code>, but the hidden/latent space is constrained to be of only <code>24 nodes</code>.</p>
+<p>The example below shows an undercomplete autoencoder which takes in a random sample of floats with <code class="language-plaintext highlighter-rouge">32 dimensions</code>, but the hidden/latent space is constrained to be of only <code class="language-plaintext highlighter-rouge">24 nodes</code>.</p>
 
-<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="lineno"> 1</span> <span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Dense</span>
-<span class="lineno"> 2</span> <span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Activation</span>
-<span class="lineno"> 3</span> <span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Input</span>
-<span class="lineno"> 4</span> <span class="kn">from</span> <span class="nn">tensorflow.keras.optimizers</span> <span class="kn">import</span> <span class="n">SGD</span>
-<span class="lineno"> 5</span> <span class="kn">from</span> <span class="nn">tensorflow.keras.models</span> <span class="kn">import</span> <span class="n">Model</span>
-<span class="lineno"> 6</span> <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-<span class="lineno"> 7</span> 
-<span class="lineno"> 8</span> <span class="n">latent_dim</span> <span class="o">=</span> <span class="mi">24</span>
-<span class="lineno"> 9</span> 
-<span class="lineno">10</span> <span class="n">inputs</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">32</span><span class="p">,))</span>
-<span class="lineno">11</span> <span class="n">x</span> <span class="o">=</span> <span class="n">inputs</span>
-<span class="lineno">12</span> <span class="n">x</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
-<span class="lineno">13</span> <span class="n">x</span> <span class="o">=</span> <span class="n">Activation</span><span class="p">(</span><span class="s">&quot;relu&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
-<span class="lineno">14</span> 
-<span class="lineno">15</span> <span class="c"># Encoder model</span>
-<span class="lineno">16</span> <span class="n">encoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;encoder&quot;</span><span class="p">)</span>
-<span class="lineno">17</span> <span class="n">encoder</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
-<span class="lineno">18</span> 
-<span class="lineno">19</span> <span class="c"># Decoder model</span>
-<span class="lineno">20</span> <span class="n">latent_inputs</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">,))</span>
-<span class="lineno">21</span> <span class="n">x</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="mi">32</span><span class="p">)(</span><span class="n">latent_inputs</span><span class="p">)</span>
-<span class="lineno">22</span> <span class="n">outputs</span> <span class="o">=</span> <span class="n">Activation</span><span class="p">(</span><span class="s">&quot;sigmoid&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
-<span class="lineno">23</span> <span class="n">decoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">latent_inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;decoder&quot;</span><span class="p">)</span>
-<span class="lineno">24</span> <span class="n">decoder</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
-<span class="lineno">25</span> 
-<span class="lineno">26</span> <span class="n">autoencoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">decoder</span><span class="p">(</span><span class="n">encoder</span><span class="p">(</span><span class="n">inputs</span><span class="p">)),</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;autoencoder&quot;</span><span class="p">)</span>
-<span class="lineno">27</span> 
-<span class="lineno">28</span> <span class="n">autoencoder</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="s">&quot;mse&quot;</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="n">SGD</span><span class="p">(</span><span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.99</span><span class="p">),</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;accuracy&quot;</span><span class="p">])</span>
-<span class="lineno">29</span> <span class="n">autoencoder</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
-<span class="lineno">30</span> 
-<span class="lineno">31</span> <span class="c"># Create fake training data of 5000 x 32 samples...</span>
-<span class="lineno">32</span> <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
-<span class="lineno">33</span> <span class="n">trainX</span><span class="p">,</span> <span class="n">testX</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
-<span class="lineno">34</span> 
-<span class="lineno">35</span> <span class="c"># Create fake training data of 5000 x 32 samples...</span>
-<span class="lineno">36</span> <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
-<span class="lineno">37</span> <span class="n">trainX</span><span class="p">,</span> <span class="n">testX</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
-<span class="lineno">38</span> 
-<span class="lineno">39</span> <span class="n">H</span> <span class="o">=</span> <span class="n">autoencoder</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">trainX</span><span class="p">,</span> <span class="n">trainX</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="p">(</span><span class="n">testX</span><span class="p">,</span> <span class="n">testX</span><span class="p">),</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+</pre></td><td class="code"><pre><span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Dense</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Activation</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Input</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras.optimizers</span> <span class="kn">import</span> <span class="n">SGD</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras.models</span> <span class="kn">import</span> <span class="n">Model</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="n">np</span>
+
+<span class="n">latent_dim</span> <span class="o">=</span> <span class="mi">24</span>
+
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">32</span><span class="p">,))</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">inputs</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">Activation</span><span class="p">(</span><span class="s">"relu"</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+
+<span class="c1"># Encoder model
+</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">"encoder"</span><span class="p">)</span>
+<span class="n">encoder</span><span class="p">.</span><span class="n">summary</span><span class="p">()</span>
+
+<span class="c1"># Decoder model
+</span><span class="n">latent_inputs</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">,))</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="mi">32</span><span class="p">)(</span><span class="n">latent_inputs</span><span class="p">)</span>
+<span class="n">outputs</span> <span class="o">=</span> <span class="n">Activation</span><span class="p">(</span><span class="s">"sigmoid"</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">decoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">latent_inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">"decoder"</span><span class="p">)</span>
+<span class="n">decoder</span><span class="p">.</span><span class="n">summary</span><span class="p">()</span>
+
+<span class="n">autoencoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">decoder</span><span class="p">(</span><span class="n">encoder</span><span class="p">(</span><span class="n">inputs</span><span class="p">)),</span> <span class="n">name</span><span class="o">=</span><span class="s">"autoencoder"</span><span class="p">)</span>
+
+<span class="n">autoencoder</span><span class="p">.</span><span class="nb">compile</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="s">"mse"</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="n">SGD</span><span class="p">(</span><span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.99</span><span class="p">),</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s">"accuracy"</span><span class="p">])</span>
+<span class="n">autoencoder</span><span class="p">.</span><span class="n">summary</span><span class="p">()</span>
+
+<span class="c1"># Create fake training data of 5000 x 32 samples...
+</span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+<span class="n">trainX</span><span class="p">,</span> <span class="n">testX</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+
+<span class="c1"># Create fake training data of 5000 x 32 samples...
+</span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="n">random</span><span class="p">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+<span class="n">trainX</span><span class="p">,</span> <span class="n">testX</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+
+<span class="n">H</span> <span class="o">=</span> <span class="n">autoencoder</span><span class="p">.</span><span class="n">fit</span><span class="p">(</span><span class="n">trainX</span><span class="p">,</span> <span class="n">trainX</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="p">(</span><span class="n">testX</span><span class="p">,</span> <span class="n">testX</span><span class="p">),</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Plots of the above model architecture is shown below:</p>
 
@@ -180,7 +222,7 @@
 <h4 id="decoder">Decoder</h4>
 <p><img src="/assets/img/autoencoders/simple_decoder.png" alt="Undercomplete Decoder" /></p>
 
-<p>Overcomplete Autoencoders are the reverse of undercomplete. They have a larger latent space compared to the input. </p>
+<p>Overcomplete Autoencoders are the reverse of undercomplete. They have a larger latent space compared to the input.</p>
 
 <p>For example, we could double the latent space variable in the above example to be 48 nodes, which would make it overcomplete since the hidden dimension is greater than 32.</p>
 
@@ -210,7 +252,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -236,6 +278,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>

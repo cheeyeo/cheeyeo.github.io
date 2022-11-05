@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Using ActionMailer in Rails 4.2">
     <meta name="author" content="Chee Yeo">
-    <meta name="keywords" content="actionmailer, rails">
-    <link rel="canonical" href="https://www.cheeyeo.dev/rails/actionmailer/2015/01/31/rails-42-actionmailer/">
+    <meta name="keywords" content="rails, actionmailer">
+    <link rel="canonical" href="http://localhost:4000/rails/actionmailer/2015/01/31/rails-42-actionmailer/">
 
     <!-- Fonts -->
     <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
@@ -27,7 +27,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Rails 4.2 ActionMailer">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/rails/actionmailer/2015/01/31/rails-42-actionmailer/">
+    <meta property="og:url" content="http://localhost:4000/rails/actionmailer/2015/01/31/rails-42-actionmailer/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -67,11 +67,11 @@
     <ul class="article-tag">
       
       <li>
-        <a href="/categories/actionmailer">actionmailer</a>
+        <a href="/categories/rails">rails</a>
       </li>
       
       <li>
-        <a href="/categories/rails">rails</a>
+        <a href="/categories/actionmailer">actionmailer</a>
       </li>
       
     </ul>
@@ -91,8 +91,11 @@
 
 <p>ActionMailer classes come with two additional methods:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="n">deliver_later</span>
-<span class="lineno">2</span> <span class="n">deliver_now</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+</pre></td><td class="code"><pre><span class="n">deliver_later</span>
+<span class="n">deliver_now</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p><strong>deliver_now</strong> is similar to the original deliver method; it sends the email synchronously</p>
 
@@ -104,7 +107,9 @@
 
 <p>This assumes that you have <strong>config.active_job.queue_adapter</strong> set to something like sidekiq:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="n">config</span><span class="o">.</span><span class="n">active_job</span><span class="o">.</span><span class="n">queue_adapter</span> <span class="o">=</span> <span class="ss">:sidekiq</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+</pre></td><td class="code"><pre><span class="n">config</span><span class="p">.</span><span class="nf">active_job</span><span class="p">.</span><span class="nf">queue_adapter</span> <span class="o">=</span> <span class="ss">:sidekiq</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Next you need to add the <strong>‘mailers’</strong> queue into the config file.</p>
 
@@ -112,14 +117,21 @@
 
 <p>In sidekiq:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="c1"># config/sidekiq.yml</span>
-<span class="lineno">2</span> 
-<span class="lineno">3</span> <span class="ss">:queues</span><span class="p">:</span>
-<span class="lineno">4</span>   <span class="o">-</span> <span class="o">[</span><span class="n">mailers</span><span class="p">,</span> <span class="mi">1</span><span class="o">]</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+</pre></td><td class="code"><pre><span class="c1"># config/sidekiq.yml</span>
+
+<span class="ss">:queues</span><span class="p">:</span>
+  <span class="o">-</span> <span class="p">[</span><span class="n">mailers</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Tail the development logs to make sure the deliveries are sent:</p>
 
-<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="lineno">1</span> <span class="o">[</span><span class="no">ActiveJob</span><span class="o">]</span> <span class="o">[</span><span class="no">ActionMailer</span><span class="o">::</span><span class="no">DeliveryJob</span><span class="o">]</span> <span class="o">[</span><span class="n">fd25b472</span><span class="o">-</span><span class="mi">9</span><span class="n">d80</span><span class="o">-</span><span class="mi">47</span><span class="n">f2</span><span class="o">-</span><span class="mi">9</span><span class="n">ea6</span><span class="o">-</span><span class="mi">5</span><span class="n">da0e3cf7552</span><span class="o">]</span> <span class="no">Performed</span> <span class="no">ActionMailer</span><span class="o">::</span><span class="no">DeliveryJob</span> <span class="n">from</span> <span class="no">Sidekiq</span><span class="p">(</span><span class="n">mailers</span><span class="p">)</span> <span class="k">in</span> <span class="mi">3160</span><span class="o">.</span><span class="mi">77</span><span class="n">ms</span></code></pre></div>
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+</pre></td><td class="code"><pre><span class="p">[</span><span class="no">ActiveJob</span><span class="p">]</span> <span class="p">[</span><span class="no">ActionMailer</span><span class="o">::</span><span class="no">DeliveryJob</span><span class="p">]</span> <span class="p">[</span><span class="n">fd25b472</span><span class="o">-</span><span class="mi">9</span><span class="n">d80</span><span class="o">-</span><span class="mi">47</span><span class="n">f2</span><span class="o">-</span><span class="mi">9</span><span class="n">ea6</span><span class="o">-</span><span class="mi">5</span><span class="n">da0e3cf7552</span><span class="p">]</span> <span class="no">Performed</span> <span class="no">ActionMailer</span><span class="o">::</span><span class="no">DeliveryJob</span> <span class="n">from</span> <span class="no">Sidekiq</span><span class="p">(</span><span class="n">mailers</span><span class="p">)</span> <span class="k">in</span> <span class="mf">3160.77</span><span class="n">ms</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>In a follow up post I will describe the steps needed to test mailers using deliver_later and the pitfalls to avoid.</p>
 
@@ -143,7 +155,7 @@
     
       <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
     
-    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    <a class="fa fa-rss fa-lg" href="/feed.xml" target="_blank"></a>
     
     
     
@@ -169,6 +181,8 @@
 
 
 
+  
+    <script src="//localhost:35729/livereload.js" async></script>
   
 
   <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
