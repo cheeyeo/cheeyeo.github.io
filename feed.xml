@@ -221,7 +221,7 @@
 
 &lt;p&gt;Next we run a job server where the actual BEAM code is submitted to.&lt;/p&gt;
 
-&lt;p&gt;Note that the version of &lt;strong&gt;apache-beam&lt;/strong&gt; installed locally in pip must match that of the sdk and job server. e.g. if we have python 3.8 and apache-beam==2.41.0 installed locally, we need the &lt;strong&gt;apache/beam_flink1.15_job_server:2.41.0&lt;/strong&gt; and &lt;strong&gt;apache/beam_python3.8_sdk:2.41.0&lt;/strong&gt; images.&lt;/p&gt;
+&lt;p&gt;Note that the version of &lt;strong&gt;apache-beam&lt;/strong&gt; installed locally in pip must match that of the sdk and job server. e.g. if we have &lt;strong&gt;python 3.8&lt;/strong&gt; and &lt;strong&gt;apache-beam==2.41.0&lt;/strong&gt; installed locally, we need the &lt;strong&gt;apache/beam_flink1.15_job_server:2.41.0&lt;/strong&gt; and &lt;strong&gt;apache/beam_python3.8_sdk:2.41.0&lt;/strong&gt; images.&lt;/p&gt;
 
 &lt;p&gt;Note that we are using the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;network_mode: host&lt;/code&gt;, which means it uses the underlying host’s network settings rather than the docker engine. This is required for the various services to communicate as there is no service discovery and the urls are hardcoded to localhost within the Flink JAR files.&lt;/p&gt;
 
@@ -319,11 +319,7 @@
 
 &lt;p&gt;Note that the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;job_endpoint&lt;/code&gt; is set to the job server service defined in the above compose config. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;environment_config&lt;/code&gt; refers to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;python-sdk&lt;/code&gt; which is attached at port 50000 to the task manager.&lt;/p&gt;
 
-&lt;p&gt;The above example has mounted a local directory of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;output&lt;/code&gt; to store the results of the pipeline. One can also exec into the beam python sdk container to access the artifacts:&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
-&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;docker &lt;span class=&quot;nb&quot;&gt;exec&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-it&lt;/span&gt; beam-python-sdk bash
-&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+&lt;p&gt;The above example has mounted a local directory of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;../outputs&lt;/code&gt; to store the results of the pipeline.&lt;/p&gt;
 
 </description>
         <pubDate>Tue, 01 Nov 2022 00:00:00 +0000</pubDate>
@@ -544,8 +540,7 @@ meson build \
       --sharedstatedir=/var/lib&lt;/span&gt;
 &lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Note that I left the build parameters as the defaults as documented on the project website.
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;Note that I left the build parameters as the defaults as documented on the project website.&lt;/p&gt;
 
 &lt;ul&gt;
   &lt;li&gt;Build the bolt package:&lt;/li&gt;

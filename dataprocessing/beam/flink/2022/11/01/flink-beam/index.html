@@ -9,17 +9,14 @@
     <meta name="author" content="Chee Yeo">
     <meta name="keywords" content="dataprocessing, beam, flink">
     <link rel="canonical" href="https://www.cheeyeo.dev/dataprocessing/beam/flink/2022/11/01/flink-beam/">
-
-    <!-- Fonts -->
-    <link href='//fonts.googleapis.com/css?family=Lato:900,300|Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
-
-    <link rel="stylesheet" href="/assets/global-ef3d2a30bafae51bdca9401db921816a.css" type="text/css">
-
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed for Blog of software writer Chee Yeo" href="/feed.xml" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/pixyll.css?202211082026" type="text/css">
+    <link href='//fonts.googleapis.com/css?family=Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300' rel='stylesheet' type='text/css'>
     
-      <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
     
-
-    <script src="/assets/modernizr.custom-d69c837039e5f58032e4842950ab13c3.js" async></script>
 
     <!-- Open Graph -->
     <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
@@ -27,7 +24,7 @@
     <meta property="og:type" content="article">
     <meta property="og:title" content="Setting up Flink cluster for BEAM workflow">
     <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
-    <meta property="og:url" content="/dataprocessing/beam/flink/2022/11/01/flink-beam/">
+    <meta property="og:url" content="https://www.cheeyeo.dev/dataprocessing/beam/flink/2022/11/01/flink-beam/">
     <meta property="og:site_name" content="Blog of software writer Chee Yeo">
 </head>
 
@@ -304,7 +301,7 @@
 
 <p>Next we run a job server where the actual BEAM code is submitted to.</p>
 
-<p>Note that the version of <strong>apache-beam</strong> installed locally in pip must match that of the sdk and job server. e.g. if we have python 3.8 and apache-beam==2.41.0 installed locally, we need the <strong>apache/beam_flink1.15_job_server:2.41.0</strong> and <strong>apache/beam_python3.8_sdk:2.41.0</strong> images.</p>
+<p>Note that the version of <strong>apache-beam</strong> installed locally in pip must match that of the sdk and job server. e.g. if we have <strong>python 3.8</strong> and <strong>apache-beam==2.41.0</strong> installed locally, we need the <strong>apache/beam_flink1.15_job_server:2.41.0</strong> and <strong>apache/beam_python3.8_sdk:2.41.0</strong> images.</p>
 
 <p>Note that we are using the <code class="language-plaintext highlighter-rouge">network_mode: host</code>, which means it uses the underlying host’s network settings rather than the docker engine. This is required for the various services to communicate as there is no service discovery and the urls are hardcoded to localhost within the Flink JAR files.</p>
 
@@ -402,11 +399,7 @@
 
 <p>Note that the <code class="language-plaintext highlighter-rouge">job_endpoint</code> is set to the job server service defined in the above compose config. The <code class="language-plaintext highlighter-rouge">environment_config</code> refers to the <code class="language-plaintext highlighter-rouge">python-sdk</code> which is attached at port 50000 to the task manager.</p>
 
-<p>The above example has mounted a local directory of <code class="language-plaintext highlighter-rouge">output</code> to store the results of the pipeline. One can also exec into the beam python sdk container to access the artifacts:</p>
-
-<figure class="highlight"><pre><code class="language-shell" data-lang="shell"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
-</pre></td><td class="code"><pre>docker <span class="nb">exec</span> <span class="nt">-it</span> beam-python-sdk bash
-</pre></td></tr></tbody></table></code></pre></figure>
+<p>The above example has mounted a local directory of <code class="language-plaintext highlighter-rouge">../outputs</code> to store the results of the pipeline.</p>
 
 
 </article>
@@ -442,7 +435,7 @@
     
 
     <div class="measure mt1 center">
-      <strong>© 2022 Chee Yeo<br/>
+      <strong>© 2022 Chee Yeo</strong><br/>
       <small>
         Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
       </small>
@@ -452,9 +445,5 @@
 
 
 
-
-  
-
-  <script src="/assets/site.min-fc110d15723a68aba602939bc68958f7.js" type="text/javascript" async></script>
 </body>
 </html>
