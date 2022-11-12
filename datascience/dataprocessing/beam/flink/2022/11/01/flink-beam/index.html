@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Setting up Flink cluster for BEAM workflow &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Using BEAM with Flink for data processing">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="datascience, dataprocessing, beam, flink">
+    <link rel="canonical" href="https://www.cheeyeo.dev/datascience/dataprocessing/beam/flink/2022/11/01/flink-beam/">
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed for Blog of software writer Chee Yeo" href="/feed.xml" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/pixyll.css?202211122129" type="text/css">
+    <link href='//fonts.googleapis.com/css?family=Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300' rel='stylesheet' type='text/css'>
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Setting up Flink cluster for BEAM workflow">
+    <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
+    <meta property="og:url" content="https://www.cheeyeo.dev/datascience/dataprocessing/beam/flink/2022/11/01/flink-beam/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Setting up Flink cluster for BEAM workflow</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">November 1, 2022</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/datascience">datascience</a>
+      </li>
+      
+      <li>
+        <a href="/categories/dataprocessing">dataprocessing</a>
+      </li>
+      
+      <li>
+        <a href="/categories/beam">beam</a>
+      </li>
+      
+      <li>
+        <a href="/categories/flink">flink</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  
+<p><a href="https://beam.apache.org/">Apache Beam</a> allows one to create reusable, chainable pipelines for data processing tasks. While it is possible to run BEAM python jobs directly using the <code class="language-plaintext highlighter-rouge">DirectRunner</code> without a backend, in production environments, we tend to use a backend runner such as Spark or <a href="https://flink.apache.org/">Flink</a>.</p>
+
+<p>This article will try to explain how to setup and run a local <a href="https://flink.apache.org/">Flink</a> cluster to run BEAM jobs on. There are two different scenarios: running <a href="https://flink.apache.org/">Flink</a> through a set of Docker containers; and running Flink on a local kubernetes cluster. This article will explain and demonstrate how to do so using Docker. A subsequent article will go into detail on how to deploy a Flink cluster in Kubernetes using Kind cluster locally.</p>
+
+<p>The main components of a Flink cluster are:</p>
+
+<ul>
+  <li>
+    <p>Job Manager</p>
+
+    <p>The core component of a Flink cluster. It serves as the control plane of the cluster and coordinates work submitted to the cluster.</p>
+  </li>
+  <li>
+    <p>Task Manager</p>
+
+    <p>Component that performs / executes the work of a Flink job from the Job Manager.</p>
+  </li>
+</ul>
+
+<p>Out of the box, Flink supports pipelines written in Java. For other languages such as Python or Go LANG, we need to submit the job as a <code class="language-plaintext highlighter-rouge">PortableRunner</code>.</p>
+
+<p>This requires running 2 additional components:</p>
+
+<ul>
+  <li>
+    <p>Job Server</p>
+
+    <p>This is where the pipeline gets submitted from the Python SDK via the Job API. Beam converts it to Runner API before submitting the pipeline via Job API to Beam’s job server.</p>
+
+    <p>The Job Server translates the pipeline code into a compatible Flink program and submits it to the Flink cluster for execution.</p>
+
+    <p>The compiled pipeline code is a Flink program that contains an <code class="language-plaintext highlighter-rouge">ExecutableStage</code> transform, which is a ParDo transform designed for holding language dependent code.</p>
+  </li>
+  <li>
+    <p>Python SDK Harness</p>
+
+    <p>This is the language specific <strong>environment</strong> where the target pipeline is executed after its submitted to the Flink cluster.</p>
+
+    <p>When Flink executes Python code, it sends data to the Python environment containing the Python SDK harness.</p>
+  </li>
+</ul>
+
+<p>An example docker compose config for running Flink cluster locally in session mode:</p>
+
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+</pre></td><td class="code"><pre><span class="na">version</span><span class="pi">:</span> <span class="s2">"</span><span class="s">3.9"</span>
+
+<span class="na">volumes</span><span class="pi">:</span>
+  <span class="na">flink-job-artifacts</span><span class="pi">:</span>
+    <span class="na">name</span><span class="pi">:</span> <span class="s">flink-job-artifacts</span>
+
+<span class="na">services</span><span class="pi">:</span>
+  <span class="na">jobmanager</span><span class="pi">:</span>
+    <span class="na">image</span><span class="pi">:</span> <span class="s">flink:1.15.2</span>
+    <span class="na">expose</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s2">"</span><span class="s">6123"</span>
+      <span class="pi">-</span> <span class="s2">"</span><span class="s">6124"</span>
+    <span class="na">ports</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s2">"</span><span class="s">8081:8081"</span>
+    <span class="na">command</span><span class="pi">:</span> <span class="s">jobmanager</span>
+    <span class="na">volumes</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">./conf:/opt/flink/conf</span>
+      <span class="pi">-</span> <span class="s">/tmp/flink-checkpoints-directory:/tmp/flink-checkpoints-directory</span>
+      <span class="pi">-</span> <span class="s">/tmp/flink-savepoints-directory:/tmp/flink-savepoints-directory</span>
+    <span class="na">environment</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">JOB_MANAGER_RPC_ADDRESS=localhost</span>
+    <span class="na">network_mode</span><span class="pi">:</span> <span class="s">host</span>
+
+  <span class="na">taskmanager</span><span class="pi">:</span>
+    <span class="na">image</span><span class="pi">:</span> <span class="s">flink:1.15.2</span>
+    <span class="na">expose</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s2">"</span><span class="s">6121"</span>
+      <span class="pi">-</span> <span class="s2">"</span><span class="s">6122"</span>
+      <span class="pi">-</span> <span class="s2">"</span><span class="s">6125"</span>
+    <span class="na">depends_on</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">jobmanager</span>
+    <span class="na">command</span><span class="pi">:</span> <span class="s">taskmanager</span>
+    <span class="na">scale</span><span class="pi">:</span> <span class="m">1</span>
+    <span class="na">volumes</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">./conf:/opt/flink/conf</span>
+      <span class="pi">-</span> <span class="s">/tmp/flink-checkpoints-directory:/tmp/flink-checkpoints-directory</span>
+      <span class="pi">-</span> <span class="s">/tmp/flink-savepoints-directory:/tmp/flink-savepoints-directory</span>
+      <span class="pi">-</span> <span class="s">flink-job-artifacts:/artifacts:rw</span>
+      <span class="pi">-</span> <span class="s">../outputs:/outputs:rw</span> <span class="c1"># mounts local output dir</span>
+    <span class="na">environment</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">JOB_MANAGER_RPC_ADDRESS=localhost</span>
+    <span class="na">network_mode</span><span class="pi">:</span> <span class="s">host</span>
+  
+
+  <span class="c1"># BEAM Job Server</span>
+  <span class="c1"># e.g. if pip apache-beam == 2.41.0, the image must be the same</span>
+  <span class="na">jobserver</span><span class="pi">:</span>
+    <span class="na">image</span><span class="pi">:</span> <span class="s">apache/beam_flink1.15_job_server:2.41.0</span>
+    <span class="na">ports</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s2">"</span><span class="s">8099:8099"</span>
+    <span class="na">volumes</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">flink-job-artifacts:/artifacts:rw</span>
+      <span class="pi">-</span> <span class="s">../data:/data:rw</span> <span class="c1"># data source from localhost</span>
+      <span class="pi">-</span> <span class="s">../outputs:/outputs:rw</span> <span class="c1"># mounts local output dir</span>
+    <span class="na">command</span><span class="pi">:</span> <span class="pi">[</span>
+      <span class="s2">"</span><span class="s">--artifacts-dir"</span><span class="pi">,</span>
+      <span class="s2">"</span><span class="s">/artifacts"</span><span class="pi">,</span>
+      <span class="s2">"</span><span class="s">--flink-master-url"</span><span class="pi">,</span> 
+      <span class="s2">"</span><span class="s">localhost:8081"</span><span class="pi">,</span>
+      <span class="s2">"</span><span class="s">--clean-artifacts-per-job"</span><span class="pi">,</span> 
+      <span class="s2">"</span><span class="s">true"</span>
+    <span class="pi">]</span>
+    <span class="na">network_mode</span><span class="pi">:</span> <span class="s">host</span>
+  
+  <span class="c1"># Specifies a python runner environment</span>
+  <span class="c1"># SDK tag version must match the pip installed apache-beam version</span>
+  <span class="c1"># e.g. if pip apache-beam == 2.41.0, the image must be the same</span>
+  <span class="na">python_sdk</span><span class="pi">:</span>
+    <span class="na">image</span><span class="pi">:</span> <span class="s">apache/beam_python3.8_sdk:2.41.0</span>
+    <span class="na">depends_on</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">jobmanager</span>
+      <span class="pi">-</span> <span class="s">taskmanager</span>
+    <span class="na">container_name</span><span class="pi">:</span> <span class="s">beam-python-sdk</span>
+    <span class="na">command</span><span class="pi">:</span> <span class="s">--worker_pool</span>
+    <span class="na">ports</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s2">"</span><span class="s">50000:50000"</span>
+    <span class="na">volumes</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">flink-job-artifacts:/artifacts:rw</span>
+      <span class="pi">-</span> <span class="s">../data:/data:rw</span> <span class="c1"># data source from localhost</span>
+      <span class="pi">-</span> <span class="s">../outputs:/outputs:rw</span> <span class="c1"># mounts local output dir</span>
+    <span class="na">network_mode</span><span class="pi">:</span> <span class="s">host</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>We declare a volumes of <strong>flink-job-artifacts</strong> store the output of the translated pipeline before submission to the Flink server. Both the taskmanager and job server must share the same path in order for the taskmanager to pick up the compiled pipeline.</p>
+
+<p>Next we run a job server where the actual BEAM code is submitted to.</p>
+
+<p>Note that the version of <strong>apache-beam</strong> installed locally in pip must match that of the sdk and job server. e.g. if we have <strong>python 3.8</strong> and <strong>apache-beam==2.41.0</strong> installed locally, we need the <strong>apache/beam_flink1.15_job_server:2.41.0</strong> and <strong>apache/beam_python3.8_sdk:2.41.0</strong> images.</p>
+
+<p>Note that we are using the <code class="language-plaintext highlighter-rouge">network_mode: host</code>, which means it uses the underlying host’s network settings rather than the docker engine. This is required for the various services to communicate as there is no service discovery and the urls are hardcoded to localhost within the Flink JAR files.</p>
+
+<p>The above cluster runs in session mode which means we can have multiple task managers by increasing the <code class="language-plaintext highlighter-rouge">scale</code> parameter.</p>
+
+<p>To run:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+</pre></td><td class="code"><pre>  docker compose <span class="nt">-f</span> docker-compose-portable.yml up
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>Check that the console is running by going to <code class="language-plaintext highlighter-rouge">localhost:8081</code>
+<img src="/assets/img/flink/dashboard.png" alt="Flink dashboard" /></p>
+
+<p>We can create a simple Beam python pipeline like below to test:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+</pre></td><td class="code"><pre><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">apache_beam</span> <span class="k">as</span> <span class="n">beam</span>
+<span class="kn">from</span> <span class="nn">apache_beam.io</span> <span class="kn">import</span> <span class="n">ReadFromText</span>
+<span class="kn">from</span> <span class="nn">apache_beam.io</span> <span class="kn">import</span> <span class="n">WriteToText</span>
+<span class="kn">from</span> <span class="nn">apache_beam.options.pipeline_options</span> <span class="kn">import</span> <span class="n">PipelineOptions</span>
+
+
+<span class="k">def</span> <span class="nf">run</span><span class="p">():</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="p">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">ap</span><span class="p">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">"--output"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">"Path to save output"</span><span class="p">)</span>
+    
+    <span class="n">known_args</span><span class="p">,</span> <span class="n">pipeline_args</span> <span class="o">=</span> <span class="n">ap</span><span class="p">.</span><span class="n">parse_known_args</span><span class="p">()</span>
+    <span class="n">pipeline_options</span> <span class="o">=</span> <span class="n">PipelineOptions</span><span class="p">(</span><span class="n">pipeline_args</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">beam</span><span class="p">.</span><span class="n">Pipeline</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="n">pipeline_options</span><span class="p">)</span> <span class="k">as</span> <span class="n">p</span><span class="p">:</span>
+        <span class="p">(</span><span class="n">p</span>
+            <span class="o">|</span> <span class="s">'Create words'</span> <span class="o">&gt;&gt;</span> <span class="n">beam</span><span class="p">.</span><span class="n">Create</span><span class="p">([</span><span class="s">'to be or not to be'</span><span class="p">])</span>
+            <span class="o">|</span> <span class="s">'Split words'</span> <span class="o">&gt;&gt;</span> <span class="n">beam</span><span class="p">.</span><span class="n">FlatMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">words</span><span class="p">:</span> <span class="n">words</span><span class="p">.</span><span class="n">split</span><span class="p">(</span><span class="s">' '</span><span class="p">))</span>
+            <span class="o">|</span> <span class="s">'Write to file'</span> <span class="o">&gt;&gt;</span> <span class="n">WriteToText</span><span class="p">(</span><span class="n">known_args</span><span class="p">.</span><span class="n">output</span><span class="p">)</span>
+        <span class="p">)</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+    <span class="n">logging</span><span class="p">.</span><span class="n">getLogger</span><span class="p">().</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="p">.</span><span class="n">INFO</span><span class="p">)</span>
+    <span class="n">run</span><span class="p">()</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>Without going into how BEAM works, which is left as an exercise to the reader, the above pipeline creates an initial string which is passed to a transform that splits up the words, and finally to another transform that writes the words into a file sink.</p>
+
+<p>The pipeline options are also created via the argparse lib. Structuring the pipeline above allows for running locally in dev mode using <code class="language-plaintext highlighter-rouge">DirectRunner</code> and also <code class="language-plaintext highlighter-rouge">PortableRunner</code></p>
+
+<p>To run the above pipeline:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+</pre></td><td class="code"><pre>python beam_examples/simple_example.py <span class="se">\</span>
+    <span class="nt">--job_name</span><span class="o">=</span>SimpleExample <span class="se">\</span>
+    <span class="nt">--runner</span><span class="o">=</span>PortableRunner <span class="se">\</span>
+    <span class="nt">--environment_type</span><span class="o">=</span>EXTERNAL <span class="se">\</span>
+    <span class="nt">--environment_config</span><span class="o">=</span>localhost:50000 <span class="se">\</span>
+    <span class="nt">--job_endpoint</span><span class="o">=</span>localhost:8099 <span class="se">\</span>
+    <span class="nt">--output</span> /outputs/NEW_FILE.txt
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p><img src="/assets/img/flink/cli.png" alt="Running BEAM job in CLI" /></p>
+
+<p>You can also view the job progress via the dashboard
+<img src="/assets/img/flink/dashboard-job.png" alt="Job in Dashboard" /></p>
+
+<p>Note that the <code class="language-plaintext highlighter-rouge">job_endpoint</code> is set to the job server service defined in the above compose config. The <code class="language-plaintext highlighter-rouge">environment_config</code> refers to the <code class="language-plaintext highlighter-rouge">python-sdk</code> which is attached at port 50000 to the task manager.</p>
+
+<p>The above example has mounted a local directory of <code class="language-plaintext highlighter-rouge">../outputs</code> to store the results of the pipeline.</p>
+
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:f/mnqwaypk"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2022 Chee Yeo</strong><br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+</body>
+</html>
