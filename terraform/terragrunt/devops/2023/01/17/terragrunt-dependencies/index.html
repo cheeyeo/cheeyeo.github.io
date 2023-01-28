@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Using Terragrunt Dependencies &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Using Terragrunt Dependencies and its caveats">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="terraform, terragrunt, devops">
+    <link rel="canonical" href="https://www.cheeyeo.dev/terraform/terragrunt/devops/2023/01/17/terragrunt-dependencies/">
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed for Blog of software writer Chee Yeo" href="/feed.xml" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/pixyll.css?202301282159" type="text/css">
+    <link href='//fonts.googleapis.com/css?family=Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300' rel='stylesheet' type='text/css'>
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Using Terragrunt Dependencies">
+    <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
+    <meta property="og:url" content="https://www.cheeyeo.dev/terraform/terragrunt/devops/2023/01/17/terragrunt-dependencies/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Using Terragrunt Dependencies</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">January 17, 2023</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/terraform">terraform</a>
+      </li>
+      
+      <li>
+        <a href="/categories/terragrunt">terragrunt</a>
+      </li>
+      
+      <li>
+        <a href="/categories/devops">devops</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  
+<p>Terragrunt is a powerful tool to organize and deploy your terraform modules. Rather than writing custom scripts or manually deploying your entire stack of modules by hand, terragrunt allows you to build virtual <code class="language-plaintext highlighter-rouge">stacks</code> of your infra via the use of <code class="language-plaintext highlighter-rouge">terragrunt.hcl</code> files which uses the same HCL language as used by terraform</p>
+
+<p>During runtime, terragrunt translates these <code class="language-plaintext highlighter-rouge">terragrunt.hcl</code> configs into actual terraform files in temp dir <code class="language-plaintext highlighter-rouge">.terragrunt-cache</code> and delegates to terraform.</p>
+
+<p>One of the more powerful features I find while using <code class="language-plaintext highlighter-rouge">terragrunt</code> is the ability to define virtual stacks of your infra using <a href="https://terragrunt.gruntwork.io/docs/reference/config-blocks-and-attributes/#dependency">Terragrunt dependency config</a> and <a href="https://terragrunt.gruntwork.io/docs/reference/config-blocks-and-attributes/#dependencies">Terragrunt dependencies config</a>.</p>
+
+<p>This allows you to define explicit ordering on the order you want the modules to be applied. A side effect of using this functionality is for modules to pass data downwards as outputs from one module into the next module as its inputs. Normally, this works as expected if the entire <code class="language-plaintext highlighter-rouge">stack</code> has been applied at the same time. If one of the modules failed during initial apply this may lead to hard to debug errors and unexpected results.</p>
+
+<p>Assuming we have the following structure of modules which must be run in the following sequence:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre></td><td class="code"><pre>stack
+├── terragrunt.hcl
+│
+├── module_a
+│   └── terragrunt.hcl
+│
+├── module_b
+│   └── terragrunt.hcl
+│
+└── module_c
+    └── terragrunt.hcl
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>There is a dependency of the following order: <code class="language-plaintext highlighter-rouge">A -&gt; B -&gt; C</code>. Both Module B and Module C relies on certain outputs from Module A. A common pattern is for Module B to use the outputs from Module A as inputs. These inputs are then defined as outputs in Module B, which gets passed into Module C via terragrunt.hcl</p>
+
+<p>The <code class="language-plaintext highlighter-rouge">terragrunt.hcl</code> file in Module B would have a format such as:</p>
+
+<figure class="highlight"><pre><code class="language-terraform" data-lang="terraform"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+</pre></td><td class="code"><pre><span class="c1"># Module B terragrunt.hcl</span>
+
+<span class="nx">dependency</span> <span class="s2">"module_a"</span> <span class="p">{</span>
+  <span class="nx">config_path</span> <span class="p">=</span> <span class="s2">"../module_a"</span>
+
+  <span class="nx">mock_outputs</span> <span class="p">=</span> <span class="p">{</span>
+    <span class="nx">output_id</span> <span class="p">=</span> <span class="s2">"fake-id"</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">inputs</span> <span class="p">{</span>
+  <span class="nx">input_id</span> <span class="p">=</span> <span class="nx">dependency</span><span class="p">.</span><span class="nx">module_a</span><span class="p">.</span><span class="nx">outputs</span><span class="p">.</span><span class="nx">output_id</span>
+<span class="p">}</span>
+
+<span class="c1"># Module B variables.tf</span>
+<span class="k">variable</span> <span class="s2">"input_id"</span> <span class="p">{}</span>
+
+<span class="c1"># Module B outputs.tf</span>
+<span class="c1"># Passing the input values as outputs</span>
+
+<span class="k">output</span> <span class="s2">"output_id"</span> <span class="p">{</span>
+  <span class="nx">value</span> <span class="p">=</span> <span class="kd">var</span><span class="p">.</span><span class="nx">input_id</span>
+<span class="p">}</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>The above declares a dependency on Module A via the <code class="language-plaintext highlighter-rouge">config_path</code> keyword. The <code class="language-plaintext highlighter-rouge">mock_outputs</code> declare fake/mock values for module_a outputs if it has not been applied yet which gets passed to <code class="language-plaintext highlighter-rouge">Module B</code> as an input to its <code class="language-plaintext highlighter-rouge">input_id</code> variable. This same value then gets passed as an output from Module B as <code class="language-plaintext highlighter-rouge">output_id</code>.</p>
+
+<p>Module C has a similar format:</p>
+
+<figure class="highlight"><pre><code class="language-terraform" data-lang="terraform"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+</pre></td><td class="code"><pre><span class="c1"># Module C terragrunt.hcl</span>
+
+<span class="nx">dependency</span> <span class="s2">"module_b"</span> <span class="p">{</span>
+  <span class="nx">config_path</span> <span class="p">=</span> <span class="s2">"../module_b"</span>
+
+  <span class="nx">mock_outputs</span> <span class="p">=</span> <span class="p">{</span>
+    <span class="nx">output_id</span> <span class="p">=</span> <span class="s2">"fake-id"</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">inputs</span> <span class="p">{</span>
+  <span class="nx">input_id</span> <span class="p">=</span> <span class="nx">dependency</span><span class="p">.</span><span class="nx">module_b</span><span class="p">.</span><span class="nx">outputs</span><span class="p">.</span><span class="nx">output_id</span>
+<span class="p">}</span>
+
+<span class="c1"># Module C variables.tf</span>
+
+<span class="k">variable</span> <span class="s2">"input_id"</span> <span class="p">{}</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>Assuming we run <code class="language-plaintext highlighter-rouge">terragrunt</code> and only Module A gets deployed and persisted to state.</p>
+
+<p>If we re-run it again, one would expect the value of <code class="language-plaintext highlighter-rouge">dependency.module_b.outputs.output_id</code> to be the actual output from <code class="language-plaintext highlighter-rouge">dependency.module_a.outputs.output_id</code>.</p>
+
+<p>Instead we get the mock value <code class="language-plaintext highlighter-rouge">fake-id</code> as Module B has not been applied and hence has no state so its mock value is returned instead. This results in the mock value being passed downstream to Module C as an input value based on its terragrunt.hcl config, leading to difficult to diagnose errors.</p>
+
+<p>In other words, when we use <code class="language-plaintext highlighter-rouge">dependency</code> config, <strong>if no state exists, the mock values are returned else it fetches and returns the real values from its state.</strong></p>
+
+<p>From the <a href="https://terragrunt.gruntwork.io/docs/features/execute-terraform-commands-on-multiple-modules-at-once/#unapplied-dependency-and-mock-outputs">Terragrunt Mock Outputs</a>:</p>
+<blockquote>
+
+  <p>Terragrunt will return an error indicating the dependency hasn’t been applied yet if the terraform module managed by the terragrunt config referenced in a dependency block has not been applied yet. This is because you cannot actually fetch outputs out of an unapplied Terraform module, even if there are no resources being created in the module.</p>
+</blockquote>
+
+<p>One way to break this dependency chain is to refactor both modules B and C so they can both run in parallel and inherit from Module A:</p>
+
+<figure class="highlight"><pre><code class="language-terraform" data-lang="terraform"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+</pre></td><td class="code"><pre><span class="c1"># Module B terragrunt.hcl</span>
+
+<span class="nx">dependency</span> <span class="s2">"module_a"</span> <span class="p">{</span>
+  <span class="nx">config_path</span> <span class="p">=</span> <span class="s2">"../module_a"</span>
+
+  <span class="nx">mock_outputs</span> <span class="p">=</span> <span class="p">{</span>
+    <span class="nx">output_id</span> <span class="p">=</span> <span class="s2">"fake-id"</span>
+  <span class="p">}</span>
+
+  <span class="nx">mock_outputs_merge_strategy_with_state</span> <span class="p">=</span> <span class="s2">"shallow"</span>
+<span class="p">}</span>
+
+<span class="nx">inputs</span> <span class="p">{</span>
+  <span class="nx">input1</span> <span class="p">=</span> <span class="nx">dependency</span><span class="p">.</span><span class="nx">module_a</span><span class="p">.</span><span class="nx">outputs</span><span class="p">.</span><span class="nx">output_id</span>
+<span class="p">}</span>
+
+
+<span class="c1"># Module C terragrunt.hcl</span>
+
+<span class="nx">dependency</span> <span class="s2">"module_a"</span> <span class="p">{</span>
+  <span class="nx">config_path</span> <span class="p">=</span> <span class="s2">"../module_a"</span>
+
+  <span class="nx">mock_outputs</span> <span class="p">=</span> <span class="p">{</span>
+    <span class="nx">output_id</span> <span class="p">=</span> <span class="s2">"fake-id"</span>
+  <span class="p">}</span>
+
+  <span class="nx">mock_outputs_merge_strategy_with_state</span> <span class="p">=</span> <span class="s2">"shallow"</span>
+<span class="p">}</span>
+
+<span class="nx">dependencies</span> <span class="p">{</span>
+  <span class="nx">paths</span> <span class="p">=</span> <span class="p">[</span><span class="s2">"../module_b"</span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="nx">inputs</span> <span class="p">{</span>
+  <span class="nx">input1</span> <span class="p">=</span> <span class="nx">dependency</span><span class="p">.</span><span class="nx">module_a</span><span class="p">.</span><span class="nx">outputs</span><span class="p">.</span><span class="nx">output_id</span>
+<span class="p">}</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>Here we use <code class="language-plaintext highlighter-rouge">dependencies</code> block in Module C so it has to wait until after Module B is applied, maintaining the sequence.</p>
+
+<p>According to the <a href="https://terragrunt.gruntwork.io/docs/reference/config-blocks-and-attributes/#dependencies">Terragrunt dependencies config</a>:</p>
+<blockquote>
+
+  <p>The dependencies block is used to enumerate all the Terragrunt modules that need to be applied in order for this module to be able to apply. Note that this is purely for ordering the operations when using run-all commands of Terraform. This does not expose or pull in the outputs like dependency blocks.</p>
+</blockquote>
+
+<p>Both modules now inherit from Module A which results in either the actual / mock values being passed to it rather than ambiguous intermediate output values. We are also able to maintain the sequence between Module B and Module C.</p>
+
+<p>The following are what I learnt the following whilst working with terragrunt dependencies:</p>
+
+<ul>
+  <li>
+    <p>Keep dependencies to 1 level deep and pass outputs directly between modules without going through any intermediate modules.</p>
+  </li>
+  <li>
+    <p>Use the <code class="language-plaintext highlighter-rouge">dependencies</code> block instead if you don’t require the outputs from a module but need to maintain sequence.</p>
+  </li>
+  <li>
+    <p>If using <code class="language-plaintext highlighter-rouge">dependency</code> block with mock outputs, use <code class="language-plaintext highlighter-rouge">mock_outputs_merge_strategy_with_state</code> to merge the actual outputs after an apply to the module’s outputs map.</p>
+  </li>
+</ul>
+
+<p>Hope it helps someone.</p>
+
+<p>H4ppy H4ck1n6 !!!</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:f/mnqwaypk"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2022 Chee Yeo</strong><br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+</body>
+</html>

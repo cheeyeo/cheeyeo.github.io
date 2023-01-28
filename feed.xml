@@ -7,6 +7,258 @@
     <atom:link href="https://www.cheeyeo.dev/feed.xml" rel="self" type="application/rss+xml" />
     
       <item>
+        <title>Using Terragrunt Dependencies</title>
+        <description>
+&lt;p&gt;Terragrunt is a powerful tool to organize and deploy your terraform modules. Rather than writing custom scripts or manually deploying your entire stack of modules by hand, terragrunt allows you to build virtual &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;stacks&lt;/code&gt; of your infra via the use of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terragrunt.hcl&lt;/code&gt; files which uses the same HCL language as used by terraform&lt;/p&gt;
+
+&lt;p&gt;During runtime, terragrunt translates these &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terragrunt.hcl&lt;/code&gt; configs into actual terraform files in temp dir &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.terragrunt-cache&lt;/code&gt; and delegates to terraform.&lt;/p&gt;
+
+&lt;p&gt;One of the more powerful features I find while using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terragrunt&lt;/code&gt; is the ability to define virtual stacks of your infra using &lt;a href=&quot;https://terragrunt.gruntwork.io/docs/reference/config-blocks-and-attributes/#dependency&quot;&gt;Terragrunt dependency config&lt;/a&gt; and &lt;a href=&quot;https://terragrunt.gruntwork.io/docs/reference/config-blocks-and-attributes/#dependencies&quot;&gt;Terragrunt dependencies config&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;This allows you to define explicit ordering on the order you want the modules to be applied. A side effect of using this functionality is for modules to pass data downwards as outputs from one module into the next module as its inputs. Normally, this works as expected if the entire &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;stack&lt;/code&gt; has been applied at the same time. If one of the modules failed during initial apply this may lead to hard to debug errors and unexpected results.&lt;/p&gt;
+
+&lt;p&gt;Assuming we have the following structure of modules which must be run in the following sequence:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;stack
+├── terragrunt.hcl
+│
+├── module_a
+│   └── terragrunt.hcl
+│
+├── module_b
+│   └── terragrunt.hcl
+│
+└── module_c
+    └── terragrunt.hcl
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;There is a dependency of the following order: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;A -&amp;gt; B -&amp;gt; C&lt;/code&gt;. Both Module B and Module C relies on certain outputs from Module A. A common pattern is for Module B to use the outputs from Module A as inputs. These inputs are then defined as outputs in Module B, which gets passed into Module C via terragrunt.hcl&lt;/p&gt;
+
+&lt;p&gt;The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terragrunt.hcl&lt;/code&gt; file in Module B would have a format such as:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-terraform&quot; data-lang=&quot;terraform&quot;&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;c1&quot;&gt;# Module B terragrunt.hcl&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;dependency&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;module_a&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;config_path&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;../module_a&quot;&lt;/span&gt;
+
+  &lt;span class=&quot;nx&quot;&gt;mock_outputs&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;output_id&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;fake-id&quot;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;inputs&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;input_id&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;dependency&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;module_a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;outputs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;output_id&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# Module B variables.tf&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;variable&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;input_id&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{}&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# Module B outputs.tf&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# Passing the input values as outputs&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;output&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;output_id&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;value&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;input_id&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The above declares a dependency on Module A via the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;config_path&lt;/code&gt; keyword. The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;mock_outputs&lt;/code&gt; declare fake/mock values for module_a outputs if it has not been applied yet which gets passed to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Module B&lt;/code&gt; as an input to its &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;input_id&lt;/code&gt; variable. This same value then gets passed as an output from Module B as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;output_id&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Module C has a similar format:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-terraform&quot; data-lang=&quot;terraform&quot;&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;c1&quot;&gt;# Module C terragrunt.hcl&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;dependency&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;module_b&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;config_path&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;../module_b&quot;&lt;/span&gt;
+
+  &lt;span class=&quot;nx&quot;&gt;mock_outputs&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;output_id&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;fake-id&quot;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;inputs&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;input_id&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;dependency&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;module_b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;outputs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;output_id&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# Module C variables.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;variable&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;input_id&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{}&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Assuming we run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terragrunt&lt;/code&gt; and only Module A gets deployed and persisted to state.&lt;/p&gt;
+
+&lt;p&gt;If we re-run it again, one would expect the value of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dependency.module_b.outputs.output_id&lt;/code&gt; to be the actual output from &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dependency.module_a.outputs.output_id&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Instead we get the mock value &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fake-id&lt;/code&gt; as Module B has not been applied and hence has no state so its mock value is returned instead. This results in the mock value being passed downstream to Module C as an input value based on its terragrunt.hcl config, leading to difficult to diagnose errors.&lt;/p&gt;
+
+&lt;p&gt;In other words, when we use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dependency&lt;/code&gt; config, &lt;strong&gt;if no state exists, the mock values are returned else it fetches and returns the real values from its state.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;From the &lt;a href=&quot;https://terragrunt.gruntwork.io/docs/features/execute-terraform-commands-on-multiple-modules-at-once/#unapplied-dependency-and-mock-outputs&quot;&gt;Terragrunt Mock Outputs&lt;/a&gt;:&lt;/p&gt;
+&lt;blockquote&gt;
+
+  &lt;p&gt;Terragrunt will return an error indicating the dependency hasn’t been applied yet if the terraform module managed by the terragrunt config referenced in a dependency block has not been applied yet. This is because you cannot actually fetch outputs out of an unapplied Terraform module, even if there are no resources being created in the module.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;One way to break this dependency chain is to refactor both modules B and C so they can both run in parallel and inherit from Module A:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-terraform&quot; data-lang=&quot;terraform&quot;&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;c1&quot;&gt;# Module B terragrunt.hcl&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;dependency&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;module_a&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;config_path&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;../module_a&quot;&lt;/span&gt;
+
+  &lt;span class=&quot;nx&quot;&gt;mock_outputs&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;output_id&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;fake-id&quot;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+  &lt;span class=&quot;nx&quot;&gt;mock_outputs_merge_strategy_with_state&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;shallow&quot;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;inputs&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;input1&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;dependency&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;module_a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;outputs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;output_id&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+
+&lt;span class=&quot;c1&quot;&gt;# Module C terragrunt.hcl&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;dependency&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;module_a&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;config_path&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;../module_a&quot;&lt;/span&gt;
+
+  &lt;span class=&quot;nx&quot;&gt;mock_outputs&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;output_id&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;fake-id&quot;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+  &lt;span class=&quot;nx&quot;&gt;mock_outputs_merge_strategy_with_state&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;shallow&quot;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;dependencies&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;paths&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;../module_b&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;inputs&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;input1&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;dependency&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;module_a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;outputs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;output_id&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Here we use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dependencies&lt;/code&gt; block in Module C so it has to wait until after Module B is applied, maintaining the sequence.&lt;/p&gt;
+
+&lt;p&gt;According to the &lt;a href=&quot;https://terragrunt.gruntwork.io/docs/reference/config-blocks-and-attributes/#dependencies&quot;&gt;Terragrunt dependencies config&lt;/a&gt;:&lt;/p&gt;
+&lt;blockquote&gt;
+
+  &lt;p&gt;The dependencies block is used to enumerate all the Terragrunt modules that need to be applied in order for this module to be able to apply. Note that this is purely for ordering the operations when using run-all commands of Terraform. This does not expose or pull in the outputs like dependency blocks.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Both modules now inherit from Module A which results in either the actual / mock values being passed to it rather than ambiguous intermediate output values. We are also able to maintain the sequence between Module B and Module C.&lt;/p&gt;
+
+&lt;p&gt;The following are what I learnt the following whilst working with terragrunt dependencies:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Keep dependencies to 1 level deep and pass outputs directly between modules without going through any intermediate modules.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Use the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dependencies&lt;/code&gt; block instead if you don’t require the outputs from a module but need to maintain sequence.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;If using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dependency&lt;/code&gt; block with mock outputs, use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;mock_outputs_merge_strategy_with_state&lt;/code&gt; to merge the actual outputs after an apply to the module’s outputs map.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Hope it helps someone.&lt;/p&gt;
+
+&lt;p&gt;H4ppy H4ck1n6 !!!&lt;/p&gt;
+</description>
+        <pubDate>Tue, 17 Jan 2023 00:00:00 +0000</pubDate>
+        <link>https://www.cheeyeo.dev/terraform/terragrunt/devops/2023/01/17/terragrunt-dependencies/</link>
+        <guid isPermaLink="true">https://www.cheeyeo.dev/terraform/terragrunt/devops/2023/01/17/terragrunt-dependencies/</guid>
+      </item>
+    
+      <item>
         <title>Using Flink High Availability with flink operator</title>
         <description>
 &lt;p&gt;Flink supports high-availability mode for both standalone and native Kubernetes via the Flink operator. This article aims to explain the purpose of HA and how to configure and run it in a local kind cluster.&lt;/p&gt;
@@ -2724,301 +2976,6 @@ sudo ldconfig&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
         <pubDate>Sun, 21 Mar 2021 00:00:00 +0000</pubDate>
         <link>https://www.cheeyeo.dev/machine-learning/mxnet/terraform/devops/mlops/2021/03/21/machine-learning-model-as-a-service/</link>
         <guid isPermaLink="true">https://www.cheeyeo.dev/machine-learning/mxnet/terraform/devops/mlops/2021/03/21/machine-learning-model-as-a-service/</guid>
-      </item>
-    
-      <item>
-        <title>Testing Machine Learning Projects in Tensorflow 2.0+</title>
-        <description>&lt;p&gt;When building and developing machine learning models, one of the commonly asked questions is how do I test or verify that the model’s behaviour matches its specifications.&lt;/p&gt;
-
-&lt;p&gt;I have seen examples of tests in various implementations on articles and open source projects. However, none of them deal with the actual question of testing model behaviour.&lt;/p&gt;
-
-&lt;p&gt;Its not until I encountered &lt;a href=&quot;https://www.jeremyjordan.me/testing-ml/&quot; target=&quot;_blank&quot;&gt;Jeremy Jordan Testing ML article&lt;/a&gt; and an implementation example from &lt;a href=&quot;https://eugeneyan.com/writing/testing-ml/&quot; target=&quot;_blank&quot;&gt;Eugene Yan Testing ML implementation&lt;/a&gt; that I grapsed the idea of the process.&lt;/p&gt;
-
-&lt;p&gt;In this article I will attempt to explain how I am testing my ML models in the tensorflow framework.&lt;/p&gt;
-
-&lt;h3 id=&quot;types-of-tests&quot;&gt;Types of tests&lt;/h3&gt;
-
-&lt;p&gt;From the articles above, ML tests can be broadly categorized into &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pre-train&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;post-train&lt;/code&gt; tests.&lt;/p&gt;
-
-&lt;p&gt;Pre-train tests are run before the actual training process starts. Such tests would include but not limited to:&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;
-    &lt;p&gt;Checking that the model’s output shape matches the output shape of the dataset&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Checking that a single training loop results in a decrease in loss&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Checking that the output predictions of the model falls within a specific range. For example, if the loss to minimise is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;categorical_crossentropy&lt;/code&gt; we expect the output to sum to 1.0&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Checking that the model can actually learn by overfitting it on the training set&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Checking for data leak in the train / test sets&lt;/p&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;If any of the above pre-train tests were to fail, it should fail and halt the training process. This is to prevent wasting any valuable resource such as GPU in the cloud.&lt;/p&gt;
-
-&lt;p&gt;Post-train tests are run after the model has been trained. Such tests are usually more specific but can be broadly categorized as such:&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;
-    &lt;p&gt;Invariance tests: Testing that perturbation to an input should still yield the same output.&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Unit-directional tests: Testing that perturbation to an input should yield the desired output.&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Unit tests: Testing on a specific section of the dataset.&lt;/p&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h3 id=&quot;test-structure&quot;&gt;Test Structure&lt;/h3&gt;
-
-&lt;p&gt;Given the above tests, how do we incorporate them into an existing project?&lt;/p&gt;
-
-&lt;p&gt;Most python projects that have tests normally use a test framework such as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pytest&lt;/code&gt;. We can leverage it for our model tests.&lt;/p&gt;
-
-&lt;p&gt;In my use case, I categorized the model tests into its respective folders in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;tests&lt;/code&gt; subdirectory within a project: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pretrain&lt;/code&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;posttrain&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;Within each of these sub directories, I further categorized these tests based on the model behaviour I’m testing for:&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-console&quot; data-lang=&quot;console&quot;&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;go&quot;&gt;tests/
-|- pytest.ini
-|- pretrain/
-  |- test_output_shape.py
-  |- test_loss.py
-&lt;/span&gt;&lt;span class=&quot;c&quot;&gt;  ...
-&lt;/span&gt;&lt;span class=&quot;go&quot;&gt;|- posttrain/
-  |- test_rotation_invariance.py
-  |- test_perspective_shift.py
-&lt;/span&gt;&lt;span class=&quot;c&quot;&gt;  ...&lt;/span&gt;
-&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;Now, given the above tests, how do we fit it within the pipeline of model training? This is where callbacks come into play…&lt;/p&gt;
-
-&lt;h3 id=&quot;use-of-callbacks&quot;&gt;Use of callbacks&lt;/h3&gt;
-
-&lt;p&gt;One of the most important features in tensorflow is the use of callbacks, which can be injected into the model’s training or prediction pipeline when you call &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;model.fit&lt;/code&gt; or &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;model.predict&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;We can define custom callbacks that invoke the test runs before and after training a model in order to run the pre-train and post-train tests.&lt;/p&gt;
-
-&lt;p&gt;These callbacks will be passed into the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;model.fit&lt;/code&gt; function call, which takes a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;callbacks&lt;/code&gt; keyword argument list.&lt;/p&gt;
-
-&lt;p&gt;The callback functions we want to hook into are:&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;on_train_begin&lt;/code&gt;: This is called before any model training starts&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;on_train_end&lt;/code&gt;: This is called after all training stops.&lt;/p&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;An example of a pre-train test custom callback can be:&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-19
-&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;tensorflow.keras.callbacks&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Callback&lt;/span&gt;
-
-&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;PreTrainTest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Callback&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__init__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;train_data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;train_labels&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_labels&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
-        &lt;span class=&quot;nb&quot;&gt;super&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PreTrainTest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;__init__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
-        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;train_data&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;train_data&lt;/span&gt;
-        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;train_labels&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;train_labels&lt;/span&gt;
-        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test_data&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_data&lt;/span&gt;
-        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test_labels&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_labels&lt;/span&gt;
-
-    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;on_train_begin&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;CustomTestRunner&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
-        	&lt;span class=&quot;s&quot;&gt;&quot;tests&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
-        	&lt;span class=&quot;s&quot;&gt;&quot;pretrain&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
-        	&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;model&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
-        	&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;train_data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
-        	&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;train_labels&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
-        	&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test_data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
-        	&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test_labels&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
-&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;Example of invoking the callback in model code:&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
-2
-3
-4
-5
-6
-7
-8
-9
-&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;p&quot;&gt;...&lt;/span&gt;
-
-&lt;span class=&quot;n&quot;&gt;model&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
-	&lt;span class=&quot;n&quot;&gt;Xtrain&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
-	&lt;span class=&quot;n&quot;&gt;ytrain&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
-	&lt;span class=&quot;n&quot;&gt;validation_data&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Xtest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ytest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
-	&lt;span class=&quot;n&quot;&gt;epochs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-	&lt;span class=&quot;n&quot;&gt;batch_size&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;32&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; 
-	&lt;span class=&quot;n&quot;&gt;callbacks&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PreTrainTest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Xtrain&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ytrain&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Xtest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ytest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)])&lt;/span&gt;
-&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;Note the use of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;CustomTestRunner&lt;/code&gt; class. This will invoke &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pytest&lt;/code&gt; dynamically as we want to run the pre-train tests before any training begins.&lt;/p&gt;
-
-&lt;p&gt;An example of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;CustomTestRunner&lt;/code&gt;:&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-19
-20
-21
-22
-23
-24
-25
-26
-27
-28
-29
-30
-31
-32
-33
-34
-35
-36
-37
-38
-39
-40
-41
-42
-43
-44
-45
-&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;CustomTestRunner&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;__init__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;directory&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;model&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;train_data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;train_labels&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_labels&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
-        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;directory&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;directory&lt;/span&gt;
-        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;kind&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kind&lt;/span&gt;
-        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;model&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;model&lt;/span&gt;
-        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;train_data&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;train_data&lt;/span&gt;
-        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;train_labels&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;train_labels&lt;/span&gt;
-        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test_data&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_data&lt;/span&gt;
-        &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test_labels&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_labels&lt;/span&gt;
-
-    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;testdir&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;os&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;join&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;directory&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;append&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;testdir&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;testfiles&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;os&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;listdir&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;testdir&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-
-        &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;testfiles&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
-            &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;For each test file,
-            we want to import it using importlib
-            so we can set the model, train data etc
-            as attributes
-            &quot;&quot;&quot;&lt;/span&gt;
-
-            &lt;span class=&quot;n&quot;&gt;testpath&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;os&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;join&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;testdir&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-            &lt;span class=&quot;n&quot;&gt;mod&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;importlib&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;import_module&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;test&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;split&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;.&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
-
-            &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;Each test must be structured as a class
-            before this will work..
-            &quot;&quot;&quot;&lt;/span&gt;
-
-            &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mod&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;__dict__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;items&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
-                &lt;span class=&quot;c1&quot;&gt;# iterate through the imported module 
-&lt;/span&gt;                &lt;span class=&quot;c1&quot;&gt;# until we find the top level class
-&lt;/span&gt;                &lt;span class=&quot;c1&quot;&gt;# left as an exercise...
-&lt;/span&gt;                &lt;span class=&quot;n&quot;&gt;found_class&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;
-
-            &lt;span class=&quot;nb&quot;&gt;setattr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;found_class&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;model&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;model&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-            &lt;span class=&quot;nb&quot;&gt;setattr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;found_class&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;xtrain&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;train_data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-            &lt;span class=&quot;nb&quot;&gt;setattr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;found_class&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;ytrain&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;train_labels&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-            &lt;span class=&quot;p&quot;&gt;...&lt;/span&gt;
-
-
-            &lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pytest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;testpath&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
-
-            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pytest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ExitCode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
-               &lt;span class=&quot;k&quot;&gt;raise&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;Exception&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Tests run failed..&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;The custom test runner takes in a test directory path, what kind of tests its running and the model and data attributes for the tests to run.&lt;/p&gt;
-
-&lt;p&gt;Each test case needs to be structured as a class as follows:&lt;/p&gt;
-
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
-2
-3
-4
-5
-6
-7
-&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;k&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;MyPreTrainTest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;test_output_shape&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;self&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
-        &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;
-        here we have access to self.model and self.xtrain
-        to work on...
-        &quot;&quot;&quot;&lt;/span&gt;
-        &lt;span class=&quot;p&quot;&gt;...&lt;/span&gt;
-&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
-
-&lt;p&gt;The above is adopted for the post-train tests in a separate callback which uses the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;on_train_end&lt;/code&gt; function call instead.&lt;/p&gt;
-
-&lt;p&gt;This structure enables me to test my model as well as working within the tensorflow framework with the least disruption to the workflow.&lt;/p&gt;
-
-&lt;p&gt;Happy Hacking !!!&lt;/p&gt;
-
-</description>
-        <pubDate>Mon, 01 Mar 2021 00:00:00 +0000</pubDate>
-        <link>https://www.cheeyeo.dev/tensorflow-2.0/machine-learning/pytest/testing/2021/03/01/testing-machine-learning/</link>
-        <guid isPermaLink="true">https://www.cheeyeo.dev/tensorflow-2.0/machine-learning/pytest/testing/2021/03/01/testing-machine-learning/</guid>
       </item>
     
   </channel>
