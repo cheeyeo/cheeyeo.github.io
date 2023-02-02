@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Using CloudFront Distribution with S3 &#8211; Blog of software writer Chee Yeo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="How to setup a CDN with private S3 bucket">
+    <meta name="author" content="Chee Yeo">
+    <meta name="keywords" content="terraform, aws, s3, cloudfront, devops">
+    <link rel="canonical" href="https://www.cheeyeo.dev/terraform/aws/s3/cloudfront/devops/2023/02/02/s3-buckets-cdn/">
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed for Blog of software writer Chee Yeo" href="/feed.xml" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/pixyll.css?202302022040" type="text/css">
+    <link href='//fonts.googleapis.com/css?family=Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Lato:900,300' rel='stylesheet' type='text/css'>
+    
+      <link href="//maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
+    
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_UK">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Using CloudFront Distribution with S3">
+    <meta property="og:description" content="Chee Yeo is a software developer with interests in machine learning and cloud computing.">
+    <meta property="og:url" content="https://www.cheeyeo.dev/terraform/aws/s3/cloudfront/devops/2023/02/02/s3-buckets-cdn/">
+    <meta property="og:site_name" content="Blog of software writer Chee Yeo">
+</head>
+
+<body class="">
+  <div class="color-line"></div>
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="https://tilrnt.github.io/" target="_blank">TILRNT</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+    <header class="blog-header">
+  <h1 class="blog-title">Using CloudFront Distribution with S3</h1>
+
+  
+  <div class="meta_info">
+    
+    <div class="author-date-wrap">
+      <div class="author">
+        <a href="/about">Chee Yeo</a>
+      </div>
+    </div>
+    
+    <span class="post-date">February 2, 2023</span>
+    
+    <ul class="article-tag">
+      
+      <li>
+        <a href="/categories/terraform">terraform</a>
+      </li>
+      
+      <li>
+        <a href="/categories/aws">aws</a>
+      </li>
+      
+      <li>
+        <a href="/categories/s3">s3</a>
+      </li>
+      
+      <li>
+        <a href="/categories/cloudfront">cloudfront</a>
+      </li>
+      
+      <li>
+        <a href="/categories/devops">devops</a>
+      </li>
+      
+    </ul>
+    
+  </div>
+  
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+<article class="post-content top-border">
+  
+<p>In a recent project, I started looking into how CloudFront distributions work in relation to serving static content stored in S3 buckets.</p>
+
+<p>In this article I aim to explain how to setup a cloudfront CDN with an existing private S3 bucket with compression.</p>
+
+<p>To allow access between cloudfront and the private S3 bucket we need to:</p>
+
+<ul>
+  <li>
+    <p>Create an <a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html#create-oac-overview">Origin Access Control</a> (OAC) policy to allow cloudfront to send authenticated requests to S3.</p>
+  </li>
+  <li>
+    <p>Create a bucket policy for the S3 origin to only allow access to it from that specific cloudfront distribution.</p>
+  </li>
+</ul>
+
+<p>To create the OAC in terraform, we can use the <code class="language-plaintext highlighter-rouge">aws_cloudfront_origin_access_control</code> resource:</p>
+
+<figure class="highlight"><pre><code class="language-terraform" data-lang="terraform"><span class="k">resource</span> <span class="s2">"aws_cloudfront_origin_access_control"</span> <span class="s2">"default"</span> <span class="p">{</span>
+  <span class="nx">name</span>                              <span class="p">=</span> <span class="s2">"S3Assets"</span>
+  <span class="nx">description</span>                       <span class="p">=</span> <span class="s2">"S3 Assets CDN Policy"</span>
+  <span class="nx">origin_access_control_origin_type</span> <span class="p">=</span> <span class="s2">"s3"</span>
+  <span class="nx">signing_behavior</span>                  <span class="p">=</span> <span class="s2">"always"</span>
+  <span class="nx">signing_protocol</span>                  <span class="p">=</span> <span class="s2">"sigv4"</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>For the bucket policy we can create a <code class="language-plaintext highlighter-rouge">aws_iam_policy_document</code> resource:</p>
+
+<figure class="highlight"><pre><code class="language-terraform" data-lang="terraform"><span class="k">data</span> <span class="s2">"aws_iam_policy_document"</span> <span class="s2">"allow_access_from_another_account"</span> <span class="p">{</span>
+  <span class="nx">statement</span> <span class="p">{</span>
+    <span class="nx">sid</span>    <span class="p">=</span> <span class="s2">"AllowCloudFrontServicePrincipalReadOnly"</span>
+    <span class="nx">effect</span> <span class="p">=</span> <span class="s2">"Allow"</span>
+
+    <span class="nx">principals</span> <span class="p">{</span>
+      <span class="nx">type</span>        <span class="p">=</span> <span class="s2">"Service"</span>
+      <span class="nx">identifiers</span> <span class="p">=</span> <span class="p">[</span><span class="s2">"cloudfront.amazonaws.com"</span><span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="nx">actions</span> <span class="p">=</span> <span class="p">[</span>
+      <span class="s2">"s3:GetObject"</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="nx">resources</span> <span class="p">=</span> <span class="p">[</span>
+      <span class="s2">"</span><span class="k">${data</span><span class="p">.</span><span class="nx">aws_s3_bucket</span><span class="p">.</span><span class="nx">selected</span><span class="p">.</span><span class="nx">arn</span><span class="k">}</span><span class="s2">/*"</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="nx">condition</span> <span class="p">{</span>
+      <span class="nx">test</span>     <span class="p">=</span> <span class="s2">"StringEquals"</span>
+      <span class="k">variable</span> <span class="p">=</span> <span class="s2">"AWS:SourceArn"</span>
+      <span class="nx">values</span>   <span class="p">=</span> <span class="p">[</span><span class="nx">aws_cloudfront_distribution</span><span class="p">.</span><span class="nx">s3_distribution</span><span class="p">.</span><span class="nx">arn</span><span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>The policy only allows access to the contents of the private s3 bucket from cloudfront if its source arn of the requester matches that of the distribution.</p>
+
+<p>Assuming we have a data resource of the bucket we can attach to it through a <code class="language-plaintext highlighter-rouge">aws_s3_bucket_policy</code> resource:</p>
+
+<figure class="highlight"><pre><code class="language-terraform" data-lang="terraform"><span class="k">data</span> <span class="s2">"aws_s3_bucket"</span> <span class="s2">"selected"</span> <span class="p">{</span>
+  <span class="nx">bucket</span> <span class="p">=</span> <span class="kd">var</span><span class="p">.</span><span class="nx">aws_s3_bucket</span>
+<span class="p">}</span>
+
+<span class="k">resource</span> <span class="s2">"aws_s3_bucket_policy"</span> <span class="s2">"allow_access_from_another_account"</span> <span class="p">{</span>
+  <span class="nx">bucket</span> <span class="p">=</span> <span class="k">data</span><span class="p">.</span><span class="nx">aws_s3_bucket</span><span class="p">.</span><span class="nx">selected</span><span class="p">.</span><span class="nx">id</span>
+  <span class="nx">policy</span> <span class="p">=</span> <span class="k">data</span><span class="p">.</span><span class="nx">aws_iam_policy_document</span><span class="p">.</span><span class="nx">allow_access_from_another_account</span><span class="p">.</span><span class="nx">json</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>Next we can create the cloudfront distribution using the following:</p>
+
+<figure class="highlight"><pre><code class="language-terraform" data-lang="terraform"><span class="k">data</span> <span class="s2">"aws_s3_bucket"</span> <span class="s2">"selected"</span> <span class="p">{</span>
+  <span class="nx">bucket</span> <span class="p">=</span> <span class="kd">var</span><span class="p">.</span><span class="nx">aws_s3_bucket</span>
+<span class="p">}</span>
+
+<span class="c1"># Gets the AWS managed cache policy</span>
+<span class="k">data</span> <span class="s2">"aws_cloudfront_cache_policy"</span> <span class="s2">"caching_optimized"</span> <span class="p">{</span>
+  <span class="nx">count</span> <span class="p">=</span> <span class="nx">length</span><span class="p">(</span><span class="kd">var</span><span class="p">.</span><span class="nx">prebuilt_policy_name</span><span class="p">)</span> <span class="err">&gt;</span> <span class="mi">0</span> <span class="err">?</span> <span class="mi">1</span> <span class="err">:</span> <span class="mi">0</span>
+  <span class="nx">name</span> <span class="p">=</span> <span class="kd">var</span><span class="p">.</span><span class="nx">prebuilt_policy_name</span>
+<span class="p">}</span>
+
+<span class="k">resource</span> <span class="s2">"aws_cloudfront_distribution"</span> <span class="s2">"s3_distribution"</span> <span class="p">{</span>
+  <span class="nx">origin</span> <span class="p">{</span>
+    <span class="nx">domain_name</span>              <span class="p">=</span> <span class="k">data</span><span class="p">.</span><span class="nx">aws_s3_bucket</span><span class="p">.</span><span class="nx">selected</span><span class="p">.</span><span class="nx">bucket_regional_domain_name</span>
+    <span class="nx">origin_access_control_id</span> <span class="p">=</span> <span class="nx">aws_cloudfront_origin_access_control</span><span class="p">.</span><span class="nx">default</span><span class="p">.</span><span class="nx">id</span>
+    <span class="nx">origin_id</span>                <span class="p">=</span> <span class="kd">var</span><span class="p">.</span><span class="nx">origin_name</span>
+  <span class="p">}</span>
+
+  <span class="nx">enabled</span> <span class="p">=</span> <span class="kd">var</span><span class="p">.</span><span class="nx">enable_cdn</span>
+
+  <span class="nx">logging_config</span> <span class="p">{</span>
+    <span class="nx">include_cookies</span> <span class="p">=</span> <span class="kc">false</span>
+    <span class="nx">bucket</span>          <span class="p">=</span> <span class="s2">"</span><span class="k">${</span><span class="kd">var</span><span class="p">.</span><span class="nx">aws_s3_log_bucket</span><span class="k">}</span><span class="s2">.s3.amazonaws.com"</span>
+    <span class="nx">prefix</span>          <span class="p">=</span> <span class="kd">var</span><span class="p">.</span><span class="nx">aws_s3_log_prefix</span>
+  <span class="p">}</span>
+
+  <span class="nx">default_cache_behavior</span> <span class="p">{</span>
+    <span class="nx">allowed_methods</span>        <span class="p">=</span> <span class="p">[</span><span class="s2">"DELETE"</span><span class="p">,</span> <span class="s2">"GET"</span><span class="p">,</span> <span class="s2">"HEAD"</span><span class="p">,</span> <span class="s2">"OPTIONS"</span><span class="p">,</span> <span class="s2">"PATCH"</span><span class="p">,</span> <span class="s2">"POST"</span><span class="p">,</span> <span class="s2">"PUT"</span><span class="p">]</span>
+    <span class="nx">cached_methods</span>         <span class="p">=</span> <span class="p">[</span><span class="s2">"GET"</span><span class="p">,</span> <span class="s2">"HEAD"</span><span class="p">]</span>
+    <span class="nx">target_origin_id</span>       <span class="p">=</span> <span class="kd">var</span><span class="p">.</span><span class="nx">origin_name</span>
+    <span class="nx">viewer_protocol_policy</span> <span class="p">=</span> <span class="s2">"redirect-to-https"</span>
+    <span class="nx">compress</span>               <span class="p">=</span> <span class="kc">true</span>
+
+    <span class="nx">cache_policy_id</span> <span class="p">=</span> <span class="nx">length</span><span class="p">(</span><span class="kd">var</span><span class="p">.</span><span class="nx">prebuilt_policy_name</span><span class="p">)</span> <span class="err">&gt;</span> <span class="mi">0</span> <span class="err">?</span> <span class="k">data</span><span class="p">.</span><span class="nx">aws_cloudfront_cache_policy</span><span class="p">.</span><span class="nx">caching_optimized</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nx">id</span> <span class="err">:</span> <span class="nx">aws_cloudfront_cache_policy</span><span class="p">.</span><span class="nx">compression</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nx">id</span>
+  <span class="p">}</span>
+
+  <span class="nx">restrictions</span> <span class="p">{</span>
+    <span class="nx">geo_restriction</span> <span class="p">{</span>
+      <span class="nx">restriction_type</span> <span class="p">=</span> <span class="s2">"whitelist"</span>
+      <span class="nx">locations</span>        <span class="p">=</span> <span class="p">[</span><span class="s2">"US"</span><span class="p">,</span> <span class="s2">"CA"</span><span class="p">,</span> <span class="s2">"GB"</span><span class="p">,</span> <span class="s2">"DE"</span><span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="nx">tags</span> <span class="p">=</span> <span class="p">{</span>
+    <span class="nx">Environment</span> <span class="p">=</span> <span class="s2">"dev"</span>
+  <span class="p">}</span>
+
+  <span class="nx">viewer_certificate</span> <span class="p">{</span>
+    <span class="nx">cloudfront_default_certificate</span> <span class="p">=</span> <span class="kc">true</span>
+  <span class="p">}</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>In the <code class="language-plaintext highlighter-rouge">origin</code> block we define:</p>
+<ul>
+  <li>the domain name to the regional domain name of the s3 bucket</li>
+  <li>sets the origin access control (OAC) to reference the one we created earlier</li>
+  <li>provide an origin name as a reference</li>
+</ul>
+
+<p>We declare a <code class="language-plaintext highlighter-rouge">logging</code> config that stores the access logs of the distribution in a separately created bucket with a prefix value.</p>
+
+<p>Next we define the cache behaviour. Note that:</p>
+
+<ul>
+  <li>
+    <p>we set the compress option to true. This is required as its off by default and no compression is applied otherwise.</p>
+  </li>
+  <li>
+    <p>We define a separate cache policy id as the source of this behaviour. We are using the default system defined <code class="language-plaintext highlighter-rouge">Managed-CachingOptimized</code> policy which enables both gzip and brotli compression but doesn’t set any query, headers, cookies.</p>
+  </li>
+</ul>
+
+<p>Note that we also define the option of allowing the user to either use the default policy or to use a custom policy.</p>
+
+<p>If we are defining a custom user policy to enable compression, we could declare it using <code class="language-plaintext highlighter-rouge">aws_cloudfront_cache_policy</code> resource like so:</p>
+
+<figure class="highlight"><pre><code class="language-terraform" data-lang="terraform"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+</pre></td><td class="code"><pre><span class="c1"># Compression cache policy</span>
+<span class="k">resource</span> <span class="s2">"aws_cloudfront_cache_policy"</span> <span class="s2">"compression"</span> <span class="p">{</span>
+  <span class="nx">count</span> <span class="p">=</span> <span class="nx">length</span><span class="p">(</span><span class="kd">var</span><span class="p">.</span><span class="nx">prebuilt_policy_name</span><span class="p">)</span> <span class="err">&gt;</span> <span class="mi">0</span> <span class="err">?</span> <span class="mi">0</span> <span class="err">:</span> <span class="mi">1</span>
+  <span class="nx">name</span>        <span class="p">=</span> <span class="s2">"compression-policy"</span>
+  <span class="nx">comment</span>     <span class="p">=</span> <span class="s2">"Compresses assets from origin"</span>
+  <span class="nx">default_ttl</span> <span class="p">=</span> <span class="mi">86400</span>
+  <span class="nx">max_ttl</span>     <span class="p">=</span> <span class="mi">31536000</span>
+  <span class="nx">min_ttl</span>     <span class="p">=</span> <span class="mi">1</span>
+
+  <span class="nx">parameters_in_cache_key_and_forwarded_to_origin</span> <span class="p">{</span>
+    <span class="nx">cookies_config</span> <span class="p">{</span>
+      <span class="nx">cookie_behavior</span> <span class="p">=</span> <span class="s2">"none"</span>
+      <span class="nx">cookies</span> <span class="p">{</span>
+        <span class="nx">items</span> <span class="p">=</span> <span class="p">[]</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="nx">headers_config</span> <span class="p">{</span>
+      <span class="nx">header_behavior</span> <span class="p">=</span> <span class="s2">"none"</span>
+      <span class="nx">headers</span> <span class="p">{</span>
+        <span class="nx">items</span> <span class="p">=</span> <span class="p">[]</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="nx">query_strings_config</span> <span class="p">{</span>
+      <span class="nx">query_string_behavior</span> <span class="p">=</span> <span class="s2">"none"</span>
+      <span class="nx">query_strings</span> <span class="p">{</span>
+        <span class="nx">items</span> <span class="p">=</span> <span class="p">[]</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="nx">enable_accept_encoding_brotli</span> <span class="p">=</span> <span class="kc">true</span>
+    <span class="nx">enable_accept_encoding_gzip</span>   <span class="p">=</span> <span class="kc">true</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></td></tr></tbody></table></code></pre></figure>
+
+<p>The above is essentially the same as the built-in <code class="language-plaintext highlighter-rouge">Managed-CachingOptimized</code>. We can attach this to a cache behaviour block through its <code class="language-plaintext highlighter-rouge">cache_policy_id</code> argument.</p>
+
+<p>After the distrbution has been deployed, we can retrieve the distribution url and make some requests to retrieve some assets to check the headers.</p>
+
+<p>To test in the terminal using <code class="language-plaintext highlighter-rouge">curl</code> we need to set the <code class="language-plaintext highlighter-rouge">Accept-Encoding</code> header value, setting <code class="language-plaintext highlighter-rouge">br,gzip</code> as its value.</p>
+
+<p>For example to test access to a javascript via cli:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl -v -I -H "Accept-Encoding: br,gzip,deflate" ${CDN_URL}/jquery.min.js
+</code></pre></div></div>
+
+<p>If compression is working, you should see in the response headers <code class="language-plaintext highlighter-rouge">vary; Accept-Encoding</code> header and a <code class="language-plaintext highlighter-rouge">content-encoding: br</code> as we specified brotli as the first option. Replacing it with <code class="language-plaintext highlighter-rouge">gzip</code> should return <code class="language-plaintext highlighter-rouge">content-encoding: gzip</code>. Subsequent requests should transition from <code class="language-plaintext highlighter-rouge">x-cache: Miss from cloudfront</code> to <code class="language-plaintext highlighter-rouge">x-cache: Hit from cloudfront</code></p>
+
+<p>There are certain conditions in which compression won’t work:</p>
+
+<ul>
+  <li>
+    <p>If the asset has already been cached in cloudfront and compression is switched on after, cloudfront will keep returning the cached asset until it expires before returning a fresh copy with compression enabled.</p>
+  </li>
+  <li>
+    <p>Only certain resource types can be compressed. Please check the list of <a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html#compressed-content-cloudfront-file-types">Supported Compression FileTypes</a>.</p>
+  </li>
+  <li>
+    <p>If the origin s3 bucket is configured as a website endpoint, we can’t use cloudfront as S3 doesn’t support HTTPS connections in that configuration</p>
+  </li>
+  <li>
+    <p>Cloudfront compression is set to <code class="language-plaintext highlighter-rouge">off</code> by default. This needs to be set to <code class="language-plaintext highlighter-rouge">on</code> before compression works.</p>
+  </li>
+</ul>
+
+<p>The complete terraform code example is as follows:
+<script src="https://gist.github.com/cheeyeo/e932b195040994c33693ed748be7483f.js"></script></p>
+
+<p>In this post, I aim to describe how to setup a CDN using Cloudfront distribution with a private s3 bucket as its origin.</p>
+
+<p>There are other areas which are not covered in this post:</p>
+
+<ul>
+  <li>
+    <p>Using a signed URLs or signed cookies to restrict access to cached files.</p>
+  </li>
+  <li>
+    <p>Using a staging distribution to test CDN.</p>
+  </li>
+  <li>
+    <p>Multiple cache behaviour based on different policy to improve cache hit ratio</p>
+  </li>
+</ul>
+
+<p>More information can be found at <a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-task-list.html">Private Content Task List</a> and <a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ConfiguringCaching.html">Optimizing caching and availability</a></p>
+
+<p>Hope it helps someone.</p>
+
+<p>H4ppy H4ck1n6 !!!</p>
+
+</article>
+
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+  <div class="p2 wrap">
+    
+      <div class="social-icons">
+  <div class="">
+    
+      <a class="fa fa-github fa-lg" href="https://github.com/cheeyeo" target="_blank"></a>
+    
+    <a class="fa fa-rss fa-lg" href="https://www.cheeyeo.dev/feed.xml" target="_blank"></a>
+    
+    
+    
+      <a class="fa fa-envelope fa-lg" href="mailto:f/mnqwaypk"></a>
+    
+    
+      <a class="fa fa-linkedin fa-lg" href="https://www.linkedin.com/in/cheeyeo" target="_blank"></a>
+    
+  </div>
+</div>
+
+    
+
+    <div class="measure mt1 center">
+      <strong>© 2023 Chee Yeo</strong><br/>
+      <small>
+        Built using the Pixll theme available on <a href="https://github.com/johno/pixyll" target="_blank">Github</a>.
+      </small>
+    </div>
+  </div>
+</footer>
+
+
+
+</body>
+</html>
