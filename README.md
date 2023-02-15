@@ -21,3 +21,5 @@ bundle exec jekyll build --config _config.yml
 ### Ref
 
 [How to use / generate Jekyll plugins]: https://learn.cloudcannon.com/jekyll/using-jekyll-plugins/
+
+* [How to use / generate Jekyll plugins]
