@@ -32,6 +32,11 @@ jobs:
           source: ./
           destination: ./_site
 
+      - name: Generate categories
+        run: |
+          bundle exec jekyll build --config _config.yml
+        shell: bash
+
       - name: Upload artifact
         # Automatically uploads an artifact from the './_site' directory by default
         uses: actions/upload-pages-artifact@v1
