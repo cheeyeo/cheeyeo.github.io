@@ -1,0 +1,63 @@
+# Site settings
+title:       Blog of software writer Chee Yeo
+email:       ckyeo.1@gmail.com
+author:      Chee Yeo
+description: "Chee Yeo is a Ruby and Rails developer from the UK."
+baseurl:     ""
+url:         ""
+
+exclude: [
+  '.env',
+  '.git',
+  '.gitignore',
+  '.DS_Store',
+  'CNAME',
+  'svg-icons',
+  'svg-decorations',
+  'scss',
+  '.sass-cache',
+  'package.json',
+  'Gruntfile.js',
+  'node_modules',
+  'README.md',
+  'README2.md',
+  'LICENSE.txt',
+  'vendor',
+  'Gemfile',
+  'Gemfile.lock',
+  'Procfile',
+  'Rakefile',
+  'config.ru',
+  'secure.conf.backup'
+]
+
+# Categories
+category_title_prefix: 'Posts in Category: '
+
+# Show Menu
+show_nav:  true
+
+# Google analytics
+google_analytics:
+
+# Optional features
+animated:           false
+show_related_posts: false
+show_post_footers:  false
+
+# Social icons
+show_social_icons: true
+github_username: cheeyeo
+twitter_username:
+google_plus_id:
+linkedin_username: cheeyeo
+bitcoin_url:
+paypal_url:
+flattr_button:
+
+# Build settings
+markdown:     kramdown
+permalink:    pretty
+paginate:     5
+sass:
+  compressed: true

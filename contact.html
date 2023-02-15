@@ -1,0 +1,24 @@
+---
+layout: page
+title: Say Hello
+permalink: /contact/
+---
+
+<div class="py2">
+  <form action="https://formspree.io/{{ site.email }}" method="POST" class="form-stacked form-light">
+    <label>Email
+    <input type="text" name="_replyto" class="input field-light" placeholder="Your Email Address">
+    </label>
+    <label>Message
+    <textarea type="text" name="content" class="input field-light" rows="5" placeholder="What would you like to say?"></textarea>
+    </label>
+    {% if site.baseurl == "" %}
+    <input type="hidden" name="_next" value="//localhost:4000/thanks.html" />
+    {% else %}
+    <input type="hidden" name="_next" value="{{ site.baseurl }}/thanks.html" />
+    {% endif %}
+    <input type="hidden" name="_subject" value="New submission!" />
+    <input type="text" name="_gotcha" style="display:none" />
+    <input type="submit" class="button button-blue button-big mobile-block" value="Say Hello">
+  </form>
+</div>

@@ -1,0 +1,56 @@
+# Site settings
+title:       Blog of software writer Chee Yeo
+email:       f/mnqwaypk
+author:      Chee Yeo
+description: "Chee Yeo is a software developer with interests in machine learning and cloud computing."
+baseurl:     ""
+url:         "https://www.cheeyeo.dev"
+
+keep_files: [
+]
+
+exclude: [
+  '.env',
+  '.git',
+  '.gitignore',
+  '.DS_Store',
+  'CNAME',
+  'README.md',
+  'Gemfile',
+  'Gemfile.lock'
+]
+
+# Categories
+category_title_prefix: 'Posts in Category: '
+
+# Show Menu
+show_nav:  true
+
+# Google analytics
+google_analytics:
+
+# Optional features
+animated:           false
+show_related_posts: false
+show_post_footers:  false
+
+# Social icons
+show_social_icons: true
+github_username: cheeyeo
+google_plus_id:
+linkedin_username: cheeyeo
+bitcoin_url:
+paypal_url:
+flattr_button:
+
+# Build settings
+markdown:     kramdown
+redcarpet:
+  extensions: ['smart', 'tables', 'with_toc_data']
+permalink:    pretty
+paginate:     5
+sass:
+  style: compressed
+plugins:
+  - jekyll-paginate
+  - jekyll-categories
