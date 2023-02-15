@@ -1,0 +1,31 @@
+---
+layout: default
+show_meta: false
+---
+<div class="categories">
+  <div class="posts top-border">
+    {% for post in site.categories[page.category] %}
+    <div class="post">
+      <a href="{{ post.url | prepend: site.baseurl }}" class="post-link">
+        <h3 class="h2 post-title">{{ post.title }}</h3>
+        <p class="post-summary">{{ post.summary }}</p>
+      </a>
+      <div class="post-meta">
+        <div class="author-date-wrap">
+          <div class="author">
+            <a href="/about">Chee Yeo</a>
+          </div>
+        </div>
+        <span class="post-date">{{ post.date | date: "%B %-d, %Y" }}</span>
+        {% if post.categories %}
+          <span class="categories-links">
+            {% for cat in post.categories %}
+              <a class="category" href="/categories/{{ cat }}">{{ cat }}</a>
+            {% endfor %}
+          </span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>

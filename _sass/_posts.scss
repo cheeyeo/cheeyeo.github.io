@@ -1,0 +1,147 @@
+
+.posts {
+  margin: 0;
+  padding-top: 2rem;
+}
+
+.posts .post {
+  /*margin-bottom: 0.75em;
+  border-bottom: thin solid #f3f3f3;*/
+  padding-bottom: 2em;
+
+  margin-bottom: 1.333em;
+  border-bottom: 1px solid rgba(228, 229, 233, 0.96);
+}
+
+.posts .post:last-child {
+  border-bottom: none;
+  margin-bottom: .375em;
+  padding-bottom: 0;
+}
+
+.post-link .post-title {
+  margin-top: 0;
+  font-weight: 600;
+  color: #333;
+}
+
+.post-link .post-summary{
+  color: rgba(142, 146, 166, 0.96);
+  font-size: 1rem;
+  line-height: 1.75;
+  margin: 25px 0;
+  font-weight: 300;
+}
+
+.post-footer {
+  @extend .italic;
+
+  margin-top: .75rem;
+  text-align: center;
+}
+
+.post-footer .avatar {
+  margin: 2rem 0;
+  width: 100px;
+  border-radius: 50%;
+}
+
+.meta,
+.post-meta {
+  width: auto;
+  font-size: .8rem;
+  font-weight: 300;
+  margin: 0;
+  padding: .25em 0;
+  color: #7a7a7a;
+}
+
+.related-post-title {
+  border-bottom: thin solid #f3f3f3;
+}
+
+.top-border {
+  border-top: 2px solid #29f;
+}
+
+.author-date-wrap {
+  margin: 0;
+  display: inline-block;
+}
+
+.author {
+  font-style: italic;
+  position: relative;
+}
+
+.author:before, .author:after {
+  color: rgba(142, 146, 166, 0.96);
+  display: inline;
+}
+
+.author:before {
+  content: 'written by';
+}
+
+.post-date:before {
+  content: '-';
+}
+
+.post-date:before, .post-date:after{
+  color: rgba(142, 146, 166, 0.96);
+  display: inline;
+  margin: 0 .5rem;
+}
+
+.post-date {
+  color: rgba(142, 146, 166, 0.96);
+  font-family: 'Lato', 'Helvetica Neue', Helvetica, sans-serif;
+}
+
+.categories-links{
+  display: inline-block;
+  margin-left: 1.5rem;
+  color: rgba(142, 146, 166, 0.96);
+  // font-style: italic;
+  text-transform: uppercase;
+  font-size: .8rem;
+}
+
+.categories-links a{
+  color: #29f;
+}
+
+.article-tag {
+  padding:0;
+  font-size: .75rem;
+  letter-spacing: 1;
+  text-transform: uppercase;
+  list-style: none;
+  text-align: center;
+}
+
+.article-tag li {
+  display: inline-block;
+}
+
+.article-tag li a{
+  font-size: 0.75rem;
+}
+
+.top-border{
+  border-top: 2px solid #29f;
+}
+
+.post-content.top-border {
+  padding-top:2rem
+}
+
+.meta_info{
+  color: rgba(91, 95, 115, 0.96);
+  text-align: center;
+  font-size: 1rem;
+}
+
+.meta_info a{
+  color: #29f;
+}
