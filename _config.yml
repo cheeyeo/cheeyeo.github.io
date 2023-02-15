@@ -15,23 +15,9 @@ exclude: [
   '.gitignore',
   '.DS_Store',
   'CNAME',
-  'svg-icons',
-  'svg-decorations',
-  'scss',
-  '.sass-cache',
-  'package.json',
-  'Gruntfile.js',
-  'node_modules',
   'README.md',
-  'README2.md',
-  'LICENSE.txt',
-  'vendor',
   'Gemfile',
-  'Gemfile.lock',
-  'Procfile',
-  'Rakefile',
-  'config.ru',
-  'secure.conf.backup'
+  'Gemfile.lock'
 ]
 
 # Categories
