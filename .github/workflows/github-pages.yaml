@@ -5,6 +5,12 @@ on:
   push:
     paths:
       - "_posts/**"
+      - "_includes/**"
+      - "about.md"
+      - "index.html"
+      - "contact.html"
+      - "feed.xml"
+      - "thanks.md"
     branches:
       - main
 
