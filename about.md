@@ -12,7 +12,7 @@ He has over 17 years commercial experience in developing and delivering bespoke 
 
 His main area of experience is in software development and design, with the following expertise:
 
-* OOP languages such as python; ruby; java
+* Object-oriented programming languages such as python; ruby; java
 * Web frameworks such as Rails; Flask; FastAPI
 * API and backend development
 * Cloud enginnering on platforms such as AWS; GCP
@@ -31,8 +31,8 @@ Since 2019, he started re-learning about machine learning and cloud computing. I
 
 He is currently doing independent research in the following areas:
 * Reinforcement Learning
-* Computer Vision with Large Vision models
+* Computer Vision with Large Vision transformer models
 * Application of machine learning to real-world problems
-* Automation in cloud computing
+* Automation and cloud computing
 
 Chee is also prolific in the open source community by contributing to open source projects. Examples of his own open source work can be found at [http://github.com/cheeyeo](https://github.com/cheeyeo){:target="_blank"}.
