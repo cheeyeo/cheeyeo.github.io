@@ -9,40 +9,52 @@ categories: machine-learning ocr grounding-dino sam torch opencv
 author: Chee Yeo
 ---
 
-A year ago, I started to research in the field of automating the parsing of receipts data using OCR. I collated a custom dataset of receipt images which are used to train a donut ocr model. Using supervised learning, the vision model is capable of learning features from the receipt images and generating a custom JSON document representaion of it.
+[Document Understanding Transformer]: https://github.com/clovaai/donut
+[Donut Training data format]: https://github.com/clovaai/donut#data
+[Grounding DINO]: https://github.com/IDEA-Research/GroundingDINO
+[Segment Anything]: https://github.com/facebookresearch/segment-anything
 
-A typical workflow to preprocess the dataset looks something like this:
+
+A year ago, I started to research in the field of automating the parsing of receipts data using OCR. I collated a custom dataset of receipt images which are used to train a [Document Understanding Transformer] model. Using supervised learning, the vision model is capable of learning features from each receipt image and generating a custom JSON document representation of it.
+
+
+A typical workflow to preprocess the dataset for training works like this:
 
 * Collate receipt images from smartphone
 * Upload images to a custom annotation tool such as UBIAI
 * Annotate each receipt image by drawing bounding boxes on its name, line items, total spent
 * Generate a JSON file of the annotation for each image
-* Write custom python script to re-generate the JSON document representation for each image into format compatible with donut-ocr format.
+* Write custom python script to parse the JSON document representation for each image into format compatible with [Donut Training data format].
 
-Overtime, this process becomes costly and error prone. The annotation tool needs to be able to detect and handle text bounding boxes appropriately but in some instances, due to actual receipt image quality, it's not possible to draw the right bounding box in the required region. As such, the annotation tool could not parse the complete text sequence, resulting in error in annotating some images. 
+Overtime, this manual process can be error prone. The annotation tool needs to be able to detect and handle text bounding boxes appropriately but in some instances, due to actual receipt image quality, it's not possible to draw the right bounding box in the required region. The running costs of the annotation tool is also high, making it prohibitive for regular usage.
 
-Rather than using a single model, is it possible to use a combination of Large vision models based on transformer networks to undertake some of the manual tasks? 
+While it is ironic that the trained model is OCR-free, we still need a degree of OCR to preprocess the training images. I started to research into the use of current pretrained vision transformers model to automate some of the preprocessing steps to save costs.
 
-The new pipeline becomes:
+The new data annotation workflow becomes:
 
 * Detect and annotate the receipt in a given image automatically
-* Mask and segment the receipt from the image
+* Generate mask of receipt from image
+* Segment receipt from image
 * Perform a top-down perspective transform of the receipt
 * Send receipt image to 3rd party service for OCR Processing
 
+The third step of performing a top-down perspective is important as we don't want the OCR engine to pick up background features in the image.
 
-In terms of detecting the presence of a receipt in an image, I experimented with using a **Grounding-DINO** pretrained model, which could undertake object-detection with a text prompt. The model is capable of zero-shot inference which means it doesn't need to be pretrained on a custom dataset. The following is a code sample of using this approach:
+
+### 1. Detecting receipt in image
+
+For detecting the presence of a receipt in an image, I experimented with using a [Grounding DINO] pretrained model, which could undertake object-detection with a text prompt. The model is capable of zero-shot inference which means it doesn't need to be pretrained on a custom dataset. The following is a code sample of using this approach:
 
 To setup GroundingDINO:
-```
+{% highlight python %}
 git clone https://github.com/IDEA-Research/GroundingDINO.git
 
 cd GroundingDINO
 
 pip install -e .
-```
+{% endhighlight %}
 
-```
+{% highlight python %}
 import os
 from groundingdino.util.inference import load_model, load_image, predict, annotate
 import supervision as sv
@@ -81,17 +93,20 @@ annotated_frame = annotate(
 
 
 sv.plot_image(annotated_frame)
-```
+{% endhighlight %}
 
-The `boxes` returned are the top-left and bottom-right coordinates of the bounding box. The `logits` refer to the confidence level of the object detection. We can use the `logits` as a further level to filter out poor predictions.
+The `boxes` returned are the top-left and bottom-right coordinates of the bounding box. The `logits` refer to the confidence level of the object detection. We can use the `logits` as a further level to filter out predictions.
 
 The image below is an example of the model's prediction:
 ![Bounding box on receipt](/assets/img/ocr/boundingbox.png)
 
-Before we can segment the image, we need to convert the bounding box coordinates to fit the image:
-```
+
+### 2. Generate receipt mask
+
+Before we can segment the image, we need to convert the bounding box coordinates from step 1 to be based on the input image size:
+
+{% highlight python %}
 import torch
-from torchvision.ops import box_convert
 import numpy as np
 
 
@@ -103,18 +118,20 @@ x0, y0, x1, y1 = box.int().tolist()
 input_box = np.array([x0,y0,x1,y1])
 input_point = None
 input_label = None
-```
+{% endhighlight %}
 
-The second task is to segment the receipt from the image. This could be accomplished using the **SAM ( Segment Anything Model )**
+To generate the receipt image mask, we could use the [Segment Anything] model. The SAM model is capable of generating masks for objects in an image given a set of bounding boxes or points. Similar to Grounding DINO, it also has strong zero-shot performance.
+
+We pass the above bounding box coordinates to the [Segment Anything] model to retrive an image mask for our receipt.
+
 
 To install the SAM model:
-```
+{% highlight python %}
 !pip install git+https://github.com/facebookresearch/segment-anything.git
-```
+{% endhighlight %}
 
-The SAM model requires a bounding box as input. We pass the formatted bounding rect coordinates based on the image dimensions from the previous step.
-
-```
+To use the model:
+{% highlight python %}
 import torch
 from segment_anything import SamPredictor, sam_model_registry
 
@@ -126,6 +143,7 @@ SAM_CHECKPOINT_PATH = os.path.join(os.getcwd(), 'checkpoints/sam_vit_h_4b8939.pt
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 sam = sam_model_registry[MODEL_TYPE](checkpoint=SAM_CHECKPOINT_PATH).to(device=device)
+
 predictor = SamPredictor(sam)
 predictor.set_image(img)
 
@@ -137,14 +155,17 @@ masks, scores, _ = predictor.predict(
 )
 
 sv.plot_image(masks[0])
-```
+{% endhighlight %}
 
 The model returns a mask of the detected object, based on the input box coordinates. The mask image looks as follows:
 ![Mask of receipt](/assets/img/ocr/maskoutput.png)
 
 
-To apply the mask and extract the receipt, we apply a **bitwise and** to the original image:
-```
+### 3. Segment receipt from image
+
+To apply the mask and extract the receipt, we can apply a **bitwise and** to the original image via OpenCV:
+
+{% highlight python %}
 import cv2
 
 mask = np.expand_dims(masks[0], axis=0)
@@ -161,14 +182,17 @@ segmented_image2 = cv2.cvtColor(segmented_image, cv2.COLOR_BGR2GRAY)
 ret, thresh = cv2.threshold(segmented_image2, 127, 255, 0)
 
 sv.plot_image(thresh)
-```
+{% endhighlight %}
 
 The formatted image looks like this:
 ![Applied mask on receipt](/assets/img/ocr/maskapply.png)
 
-The final step is to be able to detect the outlines of the receipt image. We can use the `cv2.findContours` function to do this and then apply a four-point perspective transform to create a top-down view of the image. Lastly, we apply a colour transform to give the image a scanned image look and save the image for processing later:
 
-```
+### 4. Top-down perspective transform of image
+
+The processed image from step 3 with the mask applied has the receipt in white against a black background. We can use the `cv2.findContours` function to find the outline of the receipt and apply a four-point perspective transform to create a top-down view of the image. Lastly, we apply a colour transform to give the image a scanned image look and save the image for processing later:
+
+{% highlight python %}
 import cv2
 
 contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -187,18 +211,26 @@ scanned = bw_scanner(scanned)
 sv.plot_image(scanned)
 
 cv2.imwrite('scanned.jpg', scanned)
-```
+{% endhighlight %}
 
 ![Applied mask on receipt](/assets/img/ocr/scanned.png)
 
-The above will not work if the receipt has folds/creases in its corners or sides as no contours will be found.
+> NOTE: The need to apply a top-down perspective transform is standard practice in OCR. This is to ensure that only the document object exists in the image for analysis and the content of the document object is visible.
 
-Finally, we can pass the scanned image to a 3rd party OCR service to extract the text. For this example we are using AWS Textract service which has a bespoke function for analysis of financial documents including invoices and receipts.
-
-We initialized a boto3 client using the Textract service and pass the local image to it using a bytes array. The returned output is then parsed and printed onto the console:
+> NOTE: The above will not work if the receipt has folds/creases in its corners or sides as no contours will be found.
 
 
-```
+### 5. Apply OCR to obtain receipt content
+
+Finally, we can pass the scanned image to a 3rd party OCR service to extract the textual content. 
+
+For this example, we are testing AWS Textract service as it has a bespoke function for analysis of financial documents including invoices and receipts.
+
+We initialized a **boto3** client using the Textract service and pass the local image to it using a bytes array. In production usage, the image should be saved in an S3 bucket and then retrived by Textract with the appropriate IAM permissions.
+
+The returned output is parsed and printed onto the console:
+
+{% highlight python %}
 import boto3
 
 # https://docs.aws.amazon.com/textract/latest/dg/analyzing-document-expense.html
@@ -245,7 +277,7 @@ def process_expense_analysis(s3_connection, client, bytes_test):
 
 
 if __name__ == '__main__':
-    session = boto3.Session(profile_name='iamadmin-general')
+    session = boto3.Session(profile_name='MY_PROFILE')
 
     client = session.client('textract')
 
@@ -254,10 +286,11 @@ if __name__ == '__main__':
         bytes_test = bytearray(img_test)
 
     process_expense_analysis(None, client, bytes_test)
-```
+{% endhighlight %}
 
 An example output from the service:
-```
+
+{% highlight shell %}
 Label Detection - No labels returned.
 Summary Value Detection - Confidence: 99.99404907226562, Summary Values: 365 BACON LS NP
 {'BoundingBox': {'Width': 0.41184768080711365, 'Height': 0.02726556546986103, 'Left': 0.3134370446205139, 'Top': 0.5014601349830627}, 'Polygon': [{'X': 0.3134370446205139, 'Y': 0.502947986125946}, {'X': 0.7252594828605652, 'Y': 0.5014601349830627}, {'X': 0.7252846956253052, 'Y': 0.5272407531738281}, {'X': 0.31345662474632263, 'Y': 0.5287256836891174}]}
@@ -289,12 +322,29 @@ Summary Value Detection - Confidence: 92.84737396240234, Summary Values: .00
 
 ...
 
-```
+{% endhighlight %}
 
-A detailed analysis of the Textract response is out-of-the-scope of this article. In general, the service returns a structured response of the receipt content which includes a summary of the receipt image from its metadata which includes tax code, address and name of business. The line items store the actual items of the receipt which include the item name, quantity and cost price. An interesting observation is that the response contain bounding box coordinates for every single detection which means we can use this information to annotate the image, passing it on for further processing.
+A detailed analysis of the Textract response is out-of-the-scope of this article. 
+
+In general, the service returns a structured response of the receipt content which includes metadata of the receipt such as the tax code, address and name of business. The line items store the actual items of the receipt which include the item name, quantity and cost price.
+
+Using the response data, we can format it into [Donut Training data format], replacing the custom annotation tool.
+
+To fully implement this in AWS, we probably store the original images in an S3 bucket, which can trigger an event whenever a new image is uploaded. The newly uploaded image is then passed to a Lambda function which implements the model logic above. The processed image can be passed onto the Textract service.
 
 
-( DISCUSS GROUNDING-DINO model )
-( DICUSS SAM model )
+### Comparision to manual annotation method
 
-( DISCUSS WHY THIS IS BETTER OR NOT COMPARED TO USING donut-ocr ... )
+The approach outlined above can be automated and scaled to hundreds of images easily using AWS Batch and Lambda. Since the pretrained models provide confidence scores, we can integrate this into a custom pipeline whereby any images that can't be processed can be marked for manual annotation.
+
+
+### Comparison to using the OCR-Free model
+
+[Document Understanding Transformer] model is quite capable of generating a representation of a receipt image once it has been trained properly. The approach outlined here is an attempt to automate some of the manual data preprocessing steps to speed up the training process. It's not designed to be a replacement of the model itself. However, if your requirements are to simply extract content from a receipt, then this approach may suffice. 
+
+In production or real-world usage, I can think of situations where the approach mentioned here fails, namely, if the receipt image is creased / folded. The OCR engine will not be able to parse its contents accurately.
+
+The [Document Understanding Transformer] model is invariant to such defects since it's trained on ( image, document ) pairs. Given enough training data, the model will be able to generate a full json document representation of an image.
+
+
+To summarize, I will be testing the automated approach highlighted here in an attempt to preprocess the custom receipt dataset and use it as training features for [Document Understanding Transformer] model.
