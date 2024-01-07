@@ -337,36 +337,7 @@ def search():
 
 The image search is within the **search** function. It takes an image upload in the browser, stores it in a temp location, and applies the [DINOv2] image embedding on it. Using the Weaviate client, it runs a custom query vector with the input image embedding. The query can be further customized with a max distance filter which can further filter out dissimilar images based on image distance computed.
 
-
-If any results are found, its returned in a dict which we can iterate over and render the output in the template:
-
-{% highlight html %}
-{% extends "base.html" %}
-
-{% block title %}
-  - Search Results
-{% endblock title %}
-
-{% block content %}
-  <a href="{{ url_for('home') }}">Do another search</a>
-  <h2>RESULTS</h2>
-  {% for x in content %}
-    <div>
-        <img src='data:image/jpeg;base64, {{ x["image"] }}' />
-        <p>
-            Filename: {{ x['filepath'] }}<br/>
-            Distance: {{ x['_additional']['distance'] }}
-        </p>
-    </div>
-  {% else %}
-    <p>No images found!</p>
-  {% endfor %}
-{% endblock content %}
-
-{% endhighlight %}
-
 Below are some screenshots of running some similarity searches.
-
 
 ![Search for minaret](/assets/img/cbir/results1.png)
 ![Search for kangaroo](/assets/img/cbir/results2.png)
