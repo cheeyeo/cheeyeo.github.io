@@ -34,7 +34,8 @@ I also wanted to try to use the Weaviate Vector database to store and retrieve i
 [Weaviate] is an open-source vector database designed for AI workloads. It has pre-built modules to support text and image retrieval. In this example, we are not using the pre-built modules as we are generating our own embeddings. We use the configuration defaults as they are, which means its using the **cosine distance metric** as similarity measure.
 
 We can run it using docker compose as follows:
-```
+
+{% highlight yaml %}
 version: '3.4'
 services:
   weaviate:
@@ -53,12 +54,13 @@ services:
       CLUSTER_HOSTNAME: 'node1'
 volumes:
   weaviate_data:
-```
+{% endhighlight %}
 
 We attach a new docker volume to store the DB data so it persists between restarts. 
 
 To test that its running, we can access http://localhost:8080 or use the Weaviate client in a python script:
-```
+
+{% highlight python %}
 import os
 import weaviate
 
@@ -71,12 +73,12 @@ if not WEAVIATE_URL:
 client = weaviate.Client(WEAVIATE_URL)
 schema = client.schema.get()
 print(schema)
-```
+{% endhighlight %}
 
 Since the database is empty it should generate an empty response:
-```
+{% highlight python %}
 {'classes': []}
-```
+{% endhighlight %}
 
 We will create the DB schema next.
 
@@ -85,7 +87,7 @@ We will create the DB schema next.
 
 Data is stored in Weaviate as an **object** and each object belongs to a **collection**. We can create both of them at the same time by defining its properties in a dict and passing it to the client during schema creation:
 
-```
+{% highlight python %}
 import os
 import weaviate
 
@@ -115,7 +117,7 @@ class_obj = {
 }
 
 client.schema.create_class(class_obj)
-```
+{% endhighlight %}
 
 The above creates an **Image** class to store our image embeddings. It stores the **filepath** as a string and the actual image content as a **blob**, which needs to be base64-encoded before storage.
 
@@ -129,7 +131,8 @@ The [DINOv2] model is trained using self-supervised learning (SSL) on a speciall
 For this example, we are using the [Caltech 101 dataset].
 
 To obtain the image features, we first load the model in a custom class with the required preprocessing:
-```
+
+{% highlight python %}
 import torch
 import torchvision.transforms as T
 from PIL import Image
@@ -161,14 +164,14 @@ class DinoV2Embed:
             embedding2 = embedding[0].cpu().numpy()
 
             return embedding2
-```
+{% endhighlight %}
 
 The above loads the pretrained [DINOv2] model from torch hub. We pass the input image through a preprocessor that resizes it to 244, center crop it to 224 and then apply normalization. This is passed as input directly to the model. The output returned is the image embedding, which is the output of the last transformer block which has passed through LayerNormalization and is a vector of shape 384. This is important as the image embedding needs to be a vector to be stored in the vector database. 
 
 
 Next, we create a custom script that can iterate over our image directory and store the embedding into our database:
 
-```
+{% highlight python %}
 # Creates vectors if images and upload to weaviate db
 
 from pathlib import Path
@@ -265,7 +268,7 @@ if __name__ == '__main__':
     for child in tqdm(p.iterdir(), disable=None):
         tqdm.write(f'DIR: {child}')*
         import_data(client, child)
-```
+{% endhighlight %}
 
 The above script will iterate over each subdirector in a given directory and stores the image into the database. Note that the image needs to be converted to base64 to be stored as a blob, which is the role of **img_to_base64** function. The **delete_images** function clears the database everytime this is run.
 
@@ -276,7 +279,7 @@ To test this out, I decided to create a simple webapp using **Flask** to visuali
 
 > Note that the webapp doesn't have any authentication or security and is meant to be a demo. Also the model inference should be in a separate service.
 
-```
+{% highlight python %}
 import os
 from pathlib import Path
 import json
@@ -330,14 +333,14 @@ def search():
 
     return render_template('results.html', content=images)
 
-```
+{% endhighlight %}
 
 The image search is within the **search** function. It takes an image upload in the browser, stores it in a temp location, and applies the [DINOv2] image embedding on it. Using the Weaviate client, it runs a custom query vector with the input image embedding. The query can be further customized with a max distance filter which can further filter out dissimilar images based on image distance computed.
 
 
 If any results are found, its returned in a dict which we can iterate over and render the output in the template:
 
-```
+{% highlight html %}
 {% extends "base.html" %}
 
 {% block title %}
@@ -360,7 +363,7 @@ If any results are found, its returned in a dict which we can iterate over and r
   {% endfor %}
 {% endblock content %}
 
-```
+{% endhighlight %}
 
 Below are some screenshots of running some similarity searches.
 
