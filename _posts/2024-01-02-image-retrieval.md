@@ -341,7 +341,7 @@ Below are some screenshots of running some similarity searches.
 
 ![Search for minaret](/assets/img/cbir/results1.png)
 ![Search for kangaroo](/assets/img/cbir/results2.png)
-![Search for cats](/assets/img/cbir/cats.png)
+![Search for cats](/assets/img/cbir/results3.png)
 
 Based on the visual outputs alone, the embeddings produced by [DINOv2] is superior compared to using a pre-trained ResNet50 model. It's able to recognise image features at an angle as in the first example. It's also able to detect image content on its own, regardless of the background. This is not possible with a pre-trained Convnet model as it tends to pick up similar images based on image background alone.
 
