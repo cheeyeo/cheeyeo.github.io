@@ -122,5 +122,7 @@ By adopting this hybrid approach, I was able to develop, test and deploy the Lam
 
 In future posts, I will be exploring other frameworks such as LocalStack and how they could help with the lambda development process.
 
+The project referenced in this post can be accessed here:
+https://github.com/cheeyeo/aws_lambda_docker
 
 H4ppy H4ck1ng !!!
