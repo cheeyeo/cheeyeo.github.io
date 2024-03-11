@@ -17,13 +17,15 @@ author: Chee Yeo
 
 While working on improving my frontend skills and understanding how React works, I decided to create a single-page-app (SPA) which fetches github repositories via the Github API. When deployed, the SPA would invoke an **APIGateway** route which would invoke a Lambda function as its integration that calls the Github API and then returning the response to the SPA for rendering.
 
+While I am aware other frameworks exist in the wild, such as the AWS SAM framework, I wanted to test if I could do it without having to manage additional external dependencies.
+
 The first challenge I faced was developing the Lambda function locally. My initial approach was to deploy it and modifying the code via the AWS console. However, this approach became error prone. 
 
 In order to streamline the development process, I decided that the following needs to happen:
 
 * Being able to reload the lambda code and rebuilding the image on changes.
 
-* Being able to proxy the ReactJS request to the lambda endpoint.
+* Allow webapp to interact with the lambda container endpoint.
 
 
 ### Local development of Lambda code
@@ -114,10 +116,11 @@ services:
           path: ./proxy/application.py
 {% endhighlight %}
 
-The proxy application uses the **requests** library to call the lambda event handler via the container endpoint, including any query parameters. The response is formatted to match the response format of APIGateway. For example, the error response matches that of the [APIGateway Lambda Errors] response in order to keep the logic of the SPA DRY.
-
+The proxy application uses the **requests** library to call the lambda event handler via the container endpoint, including any query parameters. The response is formatted to match the response format of APIGateway. For example, the error response matches that of the [APIGateway Lambda Errors] response in order to synchronize the responses returned from both APIGateway and the local proxy without adding additional logic to the webapp.
 
 By adopting this hybrid approach, I was able to develop, test and deploy the Lambda function as well as creating a reproducible environment that can be distributed in the form of Docker containers.
+
+In future posts, I will be exploring other frameworks such as LocalStack and how they could help with the lambda development process.
 
 
 H4ppy H4ck1ng !!!
