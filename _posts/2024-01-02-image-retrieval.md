@@ -39,7 +39,7 @@ We can run it using docker compose as follows:
 version: '3.4'
 services:
   weaviate:
-    image: semitechnologies/weaviate:1.23.0
+    image: cr.weaviate.io/semitechnologies/weaviate:1.23.0
     ports:
       - 8080:8080
       - 50051:50051
