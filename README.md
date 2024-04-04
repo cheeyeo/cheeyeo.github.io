@@ -2,6 +2,28 @@
 
 Public website for https://www.cheeyeo.dev
 
+#### ON running rvm on Ubuntu 22.04
+
+Major issue with openssl causing rvm install not to work
+
+Workaround:
+
+```
+$rvm pkg install openssl
+$rvm install ruby-<version> --with-openssl-dir=/usr/share/rvm/usr
+```
+
+To fix __rvm make install error:
+```
+rvmsudo rvm get head
+```
+
+Ref: https://github.com/rvm/rvm/issues/5216#issuecomment-1206488598
+
+
+
+#### To run locally
+
 * Setup ruby:
 ```
 rvm use ruby-3.0.0 && \

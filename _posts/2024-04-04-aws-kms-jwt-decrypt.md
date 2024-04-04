@@ -16,7 +16,7 @@ In a previous post, I detailed how we can use an AWS KMS key to sign and verify 
 
 We can also use the public key to decrypt the token content and retrieve the sent payload.
 
-```
+{% highlight python %}
 def decrypt_jwt(signature: str, key_id: str) -> tuple[dict, dict]:
     client = boto3.client('kms', region_name='eu-west-1')
     resp = client.get_public_key(
@@ -31,7 +31,7 @@ def decrypt_jwt(signature: str, key_id: str) -> tuple[dict, dict]:
     payload_data = jwt.decode(signature, key, algorithms=[header_data['alg']])
 
     return header_data, payload_data
-```
+{% endhighlight %}
 
 The function above takes as input the JWT signature and the KMS key alias that was used to create the signature.
 
