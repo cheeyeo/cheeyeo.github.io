@@ -4,6 +4,8 @@ title: About Chee Yeo
 permalink: /about/
 ---
 
+<div data-iframe-width="300" data-iframe-height="300" data-share-badge-id="90284ec4-aa24-4fb9-8b43-c6f7437be1e7" data-share-badge-host="https://www.credly.com"></div><script type="text/javascript" async src="//cdn.credly.com/assets/utilities/embed.js"></script>
+
 Chee Yeo graduated with a First Class Honors in Computer Science from the University of Essex, UK in 2007. He has worked with digital agencies and startups before freelancing as a software developer.
 
 After freelancing, he managed to gain full-time employment in various IT companies and corporations in the UK.
@@ -28,8 +30,6 @@ His main area of experience is in software development and design, with the foll
 * Dev-ops practices with CI/CD workflows ( Github actions ); custom scripting with bash scripts and go-lang
 
 Since 2019, he started re-learning about machine learning and cloud computing. In 2024, he attained the AWS Solutions Professional accreditation.
-
-<div data-iframe-width="150" data-iframe-height="270" data-share-badge-id="90284ec4-aa24-4fb9-8b43-c6f7437be1e7" data-share-badge-host="https://www.credly.com"></div><script type="text/javascript" async src="//cdn.credly.com/assets/utilities/embed.js"></script>
 
 He is currently doing independent research in the following areas:
 * Reinforcement Learning
