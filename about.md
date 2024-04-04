@@ -27,7 +27,7 @@ His main area of experience is in software development and design, with the foll
 * Computer vision using frameworks such as OpenCV
 * Dev-ops practices with CI/CD workflows ( Github actions ); custom scripting with bash scripts and go-lang
 
-Since 2019, he started re-learning about machine learning and cloud computing. In 2020, he attained the AWS Solutions Associate accreditation.
+Since 2019, he started re-learning about machine learning and cloud computing. In 2024, he attained the AWS Solutions Professional accreditation.
 
 He is currently doing independent research in the following areas:
 * Reinforcement Learning
@@ -36,3 +36,5 @@ He is currently doing independent research in the following areas:
 * Automation and cloud computing
 
 Chee is also prolific in the open source community by contributing to open source projects. Examples of his own open source work can be found at [http://github.com/cheeyeo](https://github.com/cheeyeo){:target="_blank"}.
+
+<div data-iframe-width="150" data-iframe-height="270" data-share-badge-id="90284ec4-aa24-4fb9-8b43-c6f7437be1e7" data-share-badge-host="https://www.credly.com"></div><script type="text/javascript" async src="//cdn.credly.com/assets/utilities/embed.js"></script>
