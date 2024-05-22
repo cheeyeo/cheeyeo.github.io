@@ -58,7 +58,13 @@ We created a DAG with id of `s3_processor`. The first step in the workflow uses 
 
 The second task downloads the S3 file from the previous task for processing.
 
-The third task calls a custom python script using the BashOperator to run inference using DINO model from HuggingFace to extract the bounding box coordinates of the receipt in the image. If none exists, the script raises an exception and the workflow terminates. The inference script returns the bounding box coordinates as the last printed line in JSON format of the form `{{"coords": [[x1, y1, x2, y2], [x1, y1, x2, y2]]}}`
+The third task calls a custom python script using the BashOperator to run inference using DINO model from HuggingFace to extract the bounding box coordinates of the receipt in the image. If none exists, the script raises an exception and the workflow terminates. The inference script returns the bounding box coordinates as the last printed line in JSON format of the form:
+
+{% highlight json %}
+    "{'coords': '[[0, 0, 300, 200], [0, 0, 300, 200]]'}
+{% endhighlight %}
+
+
 
 The fourth task calls a custom python script using the BashOperator to run inference using [MobileSAM from ultralytics]. This is a lightweight model with a million parameters and is suitable for inference. The script takes in two parameters as inputs: the image to be processed; the return coordinates from the previous task. The script uses the bounding-box coordinates to segment the object from the image. It performs the following image operations:
 
@@ -77,7 +83,7 @@ The image of the DAG from the console UI:
 The converted image is then ready to be passed to a service such as AWS Textract to perform OCR to extract individual line items from the processed images to the desired model training format.
 
 The following shows the images before and after by the workflow:
-![Processed image](/assets/img/airflow/images.png)
+![Processed image](/assets/img/airflow/images.jpg)
 
 
 ### Improvements
