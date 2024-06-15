@@ -16,6 +16,9 @@ author: Chee Yeo
 [AWS ECS RENDER TASK DEFINITION]: https://github.com/aws-actions/amazon-ecs-render-task-definition
 
 
+![Code Deploy Deployment](/assets/img/ecs/code_deploy_build.png)
+![Github workflow](/assets/img/ecs/github_workflow_build.png)
+
 In the previous article, I described a process of using terraform to provision the infrastructure required to run an ECS service. However, updating the service via Terraform was not ideal even in a development environment. I managed to come up with a process that uses AWS Code Deploy and GitHub actions to coordinate the development and deployment of the service, to create a smoother process.
 
 Firstly, I removed the terraform modules for the task definition and created it as a single file in the repository **taskdef.json**. This will become clear in a moment when I describe the github actions I used in the workflow. AWS recommendation is to add the task definition into version control as this would allow us to track the lineage of the automated deployment i.e. which task definition created this service.
@@ -230,3 +233,14 @@ The last three lines define the parameters of triggering a code deploy job. It r
 Once deployed, we can access the service with the latest changes via ALB.
 
 Further examples and usage of the Github Actions can be found at the following links: [AWS ECR Login], [AWS ECS DEPLOY TASK DEFINITION], [AWS ECS RENDER TASK DEFINITION].
+
+Screenshots below show Code Deploy making a successful deployment and the call logs from Github Actions:
+
+![Code Deploy Deployment](/assets/img/ecs/code_deploy_build.png)
+
+![Code Deploy Switch over](/assets/img/ecs/code_deploy_switch.png)
+
+
+The code base will be open source once refactoring is completed. 
+
+H4PPY H4CK1NG !
