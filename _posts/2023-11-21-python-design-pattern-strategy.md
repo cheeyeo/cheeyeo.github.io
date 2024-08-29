@@ -40,7 +40,7 @@ I started to research into using design patterns to refactor the code and came a
 We define a base class of **Strategy** which the algorithms can inherit from. There is only a single function of **do_work** which accepts the input parameters:
 
 {% highlight python %}
-from abc import abc
+from abc import ABC, abstractmethod
 
 
 class Strategy(ABC):
@@ -48,6 +48,7 @@ class Strategy(ABC):
     Abstract base class for all algos
     """
 
+    @abstractmethod
     def do_work(self, data: list[Any]) -> str:
         raise RuntimeError('Must be implemented in child classes')
 
@@ -130,7 +131,7 @@ The complete refactored code is as follows:
 ### Example of using Strategy pattern to process list of commands to process and store files into a cloud storage
 
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any
 
 
@@ -143,6 +144,7 @@ class Strategy(ABC):
     Abstract base class for all algos
     """
 
+    @abstractmethod
     def do_work(self, data: list[Any]) -> str:
         raise RuntimeError('Must be implemented in child classes')
 
