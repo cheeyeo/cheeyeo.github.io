@@ -13,7 +13,7 @@ author: Chee Yeo
 
 In the paper [An Image is Worth More Than 16x16 Patches], the authors proposed a novel approach to the use of patches in training vision transformers. The standard approach to training a vision transformer is to pass each image into an patch embedding layer which converts it into fixed sized sequences via convolutions.
 
-A patch is nothing more than an additional layer in the network that applies a convolution to the image with fixed kernel and stride sizes, specified via the patch size. For example, the original ViT paper uses a patch size of 16 x 16. This means for a single ImageNet input image of 224 x 224, it would generate a sequence of length ( (224 x 224) / (16 x 16) ) 192 or 192 patches each of 16x16.
+A patch is nothing more than an additional layer in the network that applies a convolution to the image with fixed kernel and stride sizes, specified via the patch size. For example, the original ViT paper uses a patch size of 16 x 16. This means for a single ImageNet input image of 224 x 224, it would generate a sequence of length ( (224 x 224) / (16 x 16) ) 196 or 196 patches each of 16x16.
 
 However, according to the paper, ViT still suffer from *locality bias* since it uses patches of fixed sizes. This means that even though the features learnt via self-attention are shared globally, the pixels within a patch are treated differently from other patches.
 
