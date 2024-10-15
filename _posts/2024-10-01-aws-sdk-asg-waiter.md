@@ -5,7 +5,7 @@ title: Using Autoscaling Group waiter in AWS SDK v2
 header: Using Autoscaling Group waiter in AWS SDK v2
 date: 2024-10-01 00:00:00
 summary: Using Autoscaling Group waiter in AWS SDK v2
-categories: go-lang aws sdk
+categories: go-lang aws sdk waiters
 author: Chee Yeo
 ---
 
