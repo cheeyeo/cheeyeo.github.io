@@ -14,7 +14,7 @@ In a recent attempt to learn about how Vault works, I decided to create a hands-
 * Supports multiple nodes, at least three
 * Supports TLS encrypted connection end-to-end
 * Uses raft autostorage with auto-join
-* Backup of Raft storage files regulary to S3
+* Automated backup of Raft storage files regulary to S3
 
 ### Setting up DNS and TLS
 
@@ -179,3 +179,93 @@ We define two listeners on the network load balancer:
 * A TCP listener on port 443, which allows the load balancer to pass encrypted traffic to the target without decrypting it
 
 Finally, we define an A record which is an alias to the network load balancer defined previously.
+
+
+### Setting up autosnapshot
+
+Since we are running vault behind a load balancer, creating a vault snapshot via the UI will not work as the `vault operator raft snapshot` command can only be run on the leader node and the load balancer will direct traffic to any of the nodes in the cluster.
+
+We can use the `EventBridge scheduler` to run an SSM command on the leader node on a predefined schedule to create the snapshot and upload it to S3.
+
+{% highlight terraform linenos %}
+resource "aws_ssm_document" "vault_restore" {
+  name            = "setup_vault_restore"
+  document_type   = "Command"
+  document_format = "YAML"
+
+  content = templatefile("${path.module}/setup_vault_restore.yaml", {
+    tpl_s3_bucket = local.snapshot_bucket
+  })
+}
+
+data "aws_instance" "leader" {
+  instance_tags = {
+    ROLE = "LEADER"
+  }
+}
+
+resource "aws_scheduler_schedule" "vault_restore" {
+  name       = "vault_restore"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  schedule_expression = "cron(0/5 * * * ? *)"
+  schedule_expression_timezone = "Europe/London"
+
+  target {
+    arn      = "arn:aws:scheduler:::aws-sdk:ssm:sendCommand"
+    role_arn = aws_iam_role.scheduler.arn
+
+    input = jsonencode({
+      DocumentName = "setup_vault_restore"
+      DocumentVersion = "$LATEST"
+      InstanceIds  = [data.aws_instance.leader.id]
+      CloudWatchOutputConfig = {
+        CloudWatchLogGroupName = "vault_restore"
+        CloudWatchOutputEnabled = true
+      }
+    })
+  }
+}
+{% endhighlight %}
+
+{% highlight yaml linenos %}
+schemaVersion: "2.2"
+description: "Vault setup script"
+parameters: {}
+mainSteps:
+  - action: "aws:runShellScript"
+    name: "example"
+    inputs:
+      timeoutSeconds: '600'
+      runCommand:
+        - |
+          export VAULT_SKIP_VERIFY=true
+          export VAULT_ADDR=https://127.0.0.1:8200
+          
+          sudo mkdir -pm 0755 /opt/vault/data/snapshot
+          sudo chown -R vault:vault /opt/vault/data/snapshot
+          sudo chmod -R a+rwx /opt/vault/data/snapshot
+
+          DATE=`date +%Y-%m-%d-%H-%M-%S`
+          
+          vault operator raft snapshot save /opt/vault/data/snapshot/vaultsnapshot-$DATE.snap
+          
+          aws s3 cp /opt/vault/data/snapshot/vaultsnapshot-$DATE.snap s3://${tpl_s3_bucket}/
+          
+          echo "Completed the backup - " $DATE
+{% endhighlight %}
+
+The SSM command runs `vault operator raft snapshot` to create a snapshot which gets copied to the specified S3 bucket in its configuration.
+
+Below are screenshots after running the above terraform modules. 
+
+![Vault dashboard](/assets/img/vault/vault_1.png)
+![Vault dashboard](/assets/img/vault/vault_2.png)
+![Vault autosnapshot](/assets/img/vault/vault_3.png)
+
+The terraform modules will be open sourced once the final refactorings are completed.
+
+H4PPY H4CK1NG!
