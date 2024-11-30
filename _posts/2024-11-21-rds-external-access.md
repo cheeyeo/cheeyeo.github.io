@@ -1,0 +1,1 @@
+https://aws.amazon.com/blogs/database/connect-external-applications-to-an-amazon-rds-instance-using-amazon-rds-proxy/
