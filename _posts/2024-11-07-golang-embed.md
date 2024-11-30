@@ -208,3 +208,6 @@ By adopting the above techniques, I was able to recreate a single binary for a w
 
 [golang embed directive]: https://pkg.go.dev/embed
 In summary, this post highlights the use of `go:embed` directive its potential use. More details about it can be found on the [golang embed directive] webpage.
+
+Example source code can be found here:
+https://github.com/cheeyeo/GOLANG_EMBED_EXAMPLE
