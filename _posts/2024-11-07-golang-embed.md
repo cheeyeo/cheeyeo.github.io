@@ -204,7 +204,18 @@ r.Use(static.Serve("/", static.EmbedFolder(server, "chatui/prod/build")))
 
 The UI is bundled and built first under a separate directory of `chatui/prod/build`. The database schema file is used to run the initial migrations before the application starts.
 
-By adopting the above techniques, I was able to recreate a single binary for a web application which is portable. From a production perspective, I would probably use an embedded database rather than sqlite3. The UI also needs to be refactored so the websocket only gets created when a user enters a room. 
+By adopting the above techniques, I was able to recreate a single binary for a web application which is portable. To run we simply invoke the binary:
+
+```
+bin/chatapp
+```
+
+Below are some screenshots of the single application. The first screenshot shows how messages are only sent for each channel. The second channel shows the broadcast of messages in the same channel.
+
+![Chatapp different channel](/assets/img/golang/websockets/different_channels.png)
+![Chatapp same channel](/assets/img/golang/websockets/same_channels.png)
+
+From a production perspective, I would probably use an embedded database rather than sqlite3. The UI also needs to be refactored so the websocket only gets created when a user enters a room. 
 
 [golang embed directive]: https://pkg.go.dev/embed
 In summary, this post highlights the use of `go:embed` directive its potential use. More details about it can be found on the [golang embed directive] webpage.
