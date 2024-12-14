@@ -9,7 +9,7 @@ categories: python design-pattern strategy
 author: Chee Yeo
 ---
 
-[previous article on implementing the Strategy design pattern in python]: https://www.cheeyeo.dev/python/design-pattern/strategy/2023/11/21/python-design-pattern-strategy/
+[previous article on implementing the Strategy design pattern in python]: https://www.cheeyeo.xyz/python/design-pattern/strategy/2023/11/21/python-design-pattern-strategy/
 
 In a [previous article on implementing the Strategy design pattern in python], I created a fictious example using python's abstract base class inheritance as an implementation. In this post, I would like to implement a different approach using python `typing` module.
 
