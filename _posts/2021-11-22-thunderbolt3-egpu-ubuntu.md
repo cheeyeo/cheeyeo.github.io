@@ -9,7 +9,7 @@ categories: machine-learning thunderbolt3 egpu ubuntu 18.04
 author: Chee Yeo
 ---
 
-[eGPU for Machine Learning]: https://www.cheeyeo.dev/egpu/ubuntu/18.04/machine-learning/2020/03/13/multi-egpu-ubuntu/
+[eGPU for Machine Learning]: https://www.cheeyeo.xyz/egpu/ubuntu/18.04/machine-learning/2020/03/13/multi-egpu-ubuntu/
 
 [bolt source]: https://gitlab.freedesktop.org/bolt/bolt/-/releases
 
