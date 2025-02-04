@@ -10,11 +10,11 @@ Chee Yeo graduated with a First Class Honors in Computer Science from the Univer
 
 After freelancing, he managed to gain full-time employment in various IT companies and corporations in the UK.
 
-He has over 17 years commercial experience in developing and delivering bespoke software systems. 
+He has over 18 years commercial experience in developing and delivering bespoke software systems. 
 
 His main area of experience is in software development and design, with the following expertise:
 
-* Object-oriented programming languages such as python; ruby; java
+* Object-oriented programming languages such as python; ruby; go-lang; java
 * Web frameworks such as Rails; Flask; FastAPI
 * API and backend development
 * Cloud enginnering on platforms such as AWS; GCP
@@ -27,11 +27,13 @@ His main area of experience is in software development and design, with the foll
 * Machine-learning libraries such as numpy; sklearn; pandas
 * Machine-learning frameworks such as pytorch; tensorflow; keras
 * Computer vision using frameworks such as OpenCV
-* Dev-ops practices with CI/CD workflows ( Github actions ); custom scripting with bash scripts and go-lang
+* Dev-ops practices with CI/CD workflows ( Github actions; Gitlab pipelines ); custom scripting with bash scripts and go-lang
 
 Since 2019, he started re-learning about machine learning and cloud computing. In 2024, he attained the AWS Solutions Professional accreditation.
 
 He is currently doing independent research in the following areas:
+* AI Application Development
+* Agents
 * Reinforcement Learning
 * Computer Vision with Large Vision transformer models
 * Application of machine learning to real-world problems
