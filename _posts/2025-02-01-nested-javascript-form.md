@@ -5,7 +5,7 @@ title: Nested form in javascript
 header: Nested form in javascript
 date: 2025-02-01 00:00:00
 summary: How to access create a nested form in pure javascript
-categories: javascript nested-form
+categories: javascript nested-form gemini
 author: Chee Yeo
 ---
 
