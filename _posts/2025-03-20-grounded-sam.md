@@ -3,7 +3,7 @@ layout: post
 show_meta: true
 title: Review of Grounded-SAM paper and its applications
 header: Review of Grounded-SAM paper and its applications
-date: 2025-03-17 00:00:00
+date: 2025-03-20 00:00:00
 summary: Review of Grounded-SAM paper and its applications
 categories: machine-learning computer-vision sam dino
 author: Chee Yeo
