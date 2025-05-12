@@ -3,7 +3,7 @@ layout: post
 show_meta: true
 title: Using AWS CodePipeline to automate EC2 deployment
 header: Using AWS CodePipeline to automate EC2 deployment
-date: 2025-05-02 00:00:00
+date: 2025-05-10 00:00:00
 summary: Using AWS CodePipeline to automate EC2 deployment via CodeDeploy Agent
 categories: aws codepipeline codebuild codedeploy CI/CD pipeline ec2
 author: Chee Yeo
