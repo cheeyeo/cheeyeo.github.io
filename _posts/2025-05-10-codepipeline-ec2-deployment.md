@@ -5,46 +5,36 @@ title: Using AWS CodePipeline to automate EC2 deployment
 header: Using AWS CodePipeline to automate EC2 deployment
 date: 2025-05-02 00:00:00
 summary: Using AWS CodePipeline to automate EC2 deployment via CodeDeploy Agent
-categories: aws codepipeline codebuild codedeploy CI/CD pipeline
+categories: aws codepipeline codebuild codedeploy CI/CD pipeline ec2
 author: Chee Yeo
 ---
 
-In a previous post, I explained how one could utilize the AWS Codepipeline, CodeBuild and CodeDeploy to run a blue/green deployment of a service running on ECS. This article aims to explain a similar process but for EC2 instances.
+In a previous post, I explained how one could utilize the AWS Codepipeline, CodeBuild and CodeDeploy to run a blue/green deployment of a service running on ECS. This article aims to present a similar approach for EC2 instances. Deployment for EC2 instances can be performed either `in-place` where the currently running instances are replaced with the updated applications or `blue/green` where we have two sets of instances running and the traffic gets re-routed to the new instance set after update is completed. The latter involves the use of Auto-Scaling groups and load balancers. For brevity, this article is an introduction to continuou deployment for EC2 instances using the CodeDeploy agent.
 
-As a pre-requisite, we need a running EC2 Instance with a tag of `Name: CodeDeployDemo`. The EC2 Instance role needs to have the `SSM` core instance role attached in order to use SSM as well as a policy to read the CodePipeline s3 artifacts directory. 
+For continous deployment for EC2, we need the following basic resources:
+* CodeCommit or source control for the `Source` stage in CodePipeline
+* CodeDeploy for CD for the `Deploy` stage in CodePipeline
+* S3 bucket for deployment artifacts
+* IAM roles for both the CodePipeline and CodeDeploy agent
+* CodeDeploy agent running on EC2 instance
 
-We need to install the `CodeDeploy Agent` and the recommended approach is to use SSM Distributor to install using `RunCommand` with the `AWS CodeDeploy config`. Once installed, we can use SSM to login to the instance and check its status:
-```
-sudo systemctl status codedeploy-agent
-```
 
-You can also view the logs at ``. Further posts will explore how to stream logs into CloudWatch.
+[CodeDeploy Wordpress tutorial]: https://docs.aws.amazon.com/codedeploy/latest/userguide/tutorials-wordpress.html
 
-Follwing the agent install, the following resources need to be implemented for it to work:
-* CodeDeploy EC2 Service Role
-* CodeDeploy application and deployment group
-* CodePipeline pipeline
+### Setting up the source
 
-For creating the EC2 Service role for CodeDeploy, we need to attach the `AWSCodeDeployRole` policy with a role that has a trust policy of:
-```
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "codedeploy.amazonaws.com"
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
-```
-This role needs to be attached to the EC2 instance.
+This example uses the [CodeDeploy Wordpress tutorial] to deploy a WordPress website running on a LAMP stack. The example has been tweaked for this article to allow it to work on the current Amazon Linux AMI. A github repo is created with the `appspec.yml` file together with the article scripts. A current copy of Wordpress is also clone into the repo in order to test changes in the deployment pipeline. 
 
-The deployment requires an `appspec.yml` file which has the following:
-```
+The github repo is linked via the CodeConnections under `Developer Tools > Settings` and created manually. This would show up as an Installed Github app under the `Integrations > Github apps` settings for the repo.
+
+![AWS Github CodeConnect](/assets/img/codepipeline-ec2/aws_codeconnector.png)
+
+
+### Setting up CodeDeploy
+
+The `appspec.yml` file is a configuration specification for CodeDeploy and it has the following format:
+
+{% highlight yaml %}
 version: 0.0
 os: linux
 files:
@@ -69,34 +59,224 @@ hooks:
     - location: scripts/stop_server.sh
       timeout: 300
       runas: root
-```
+{% endhighlight %}
 
-The above is an example adapted from CodeDeploy for deploying a LAMP stack running wordpress. This file is in the root of the github repo. The specification above copies the wordpress source and copies it to `/var/www/html` which is the default directory for Apache web server. By default, the working directory for the Codedeploy agent is at `/opt/codedeploy-agent/deployment-root`. The scripts sub-dir will be copied to `/opt/codedeploy-agent/deployment-root/deployment-group-id/deployment-id/deployment-archive`. Using the relative paths, we could run the scripts after they are copied. The `AfterInstall` scripts install the WP deps such as httpd and sets up the database. The `ApplicationStart` hooks starts the httpd server and creates a test database. The `ApplicationStop` hooks run when it receives a stop lifecycle event and this stops the httpd server.
+During a deployment, the CodePipeline will pass the source code from the `Source` stage to the `Deploy` stage as a zip archive. This archive will be pulled from the S3 bucket associated as the artifacts source with the pipeline by the CodeDeploy agent. The archive will be extracted into the working directory of the CodeDeploy agent on the EC2 Instance. The files will be relative to the agent's current working directory. The `files` section above indicate that the WordPress source is to be extracted to `/var/www/html` which is the absolute path for apache server. The scripts are extracted to the agent's current working directory. 
 
-For EC2 and on-prem instances, there are 3 in place deployment strategies:
+[CodeDeploy EC2 Hooks]: https://docs.aws.amazon.com/codedeploy/latest/userguide/reference-appspec-file-structure-hooks.html#reference-appspec-file-structure-hooks-list
 
-* CodeDeployDefault.AllAtOnce
-  Replaces all the instances immediately with the new revision
+The scripts are [CodeDeploy EC2 Hooks] which are run at different stages of the deployment process. The following hooks are used in this example:
 
-* CodeDeployDefault.HalfAtATime
-  Replace half of the instances at a time with the new revision.
+* AfterInstall
+  Runs after the source files are copied into the destination folders. In our example, we install the LAMP stack components
 
-* CodeDeployDefault.OneAtATime
-  Deploys the new revision to one instance at a time.
+* ApplicationStart
+  Used to start or restart the application. In our example, we start the LAMP stack such as the server and database
 
-We use the default of `CodeDeployDefault.OneAtATime`. The deployment configuration also supports blue/green dpeloyment but it requires an autoscaling group and load balancer which is outside the scope of this article.
+* ApplicationStop
+  Stop applications before an application revision is to be performed. In our example, we stop the LAMP stack.
+  This will be restarted via ApplicationStart hook once update completed.
 
-To create a new CodePipeline pipeline, we only use the following two stages:
+
+
+### Setting up CodeDeploy
+
+We setup a CodeDeploy application and its Deployment Group. The deployment group requires an IAM service role that has the following trust relationship:
+
+{% highlight json %}
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "codedeploy.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
+{% endhighlight %}
+
+We attach the policy of `AWSCodeDeployRole` to it which grants permissions for EC2 deployments.
+
+Under `Deployment Type` we select `in place` and under `Environment Configuration` we select `EC2 instances` with a tag of `Name: CodeDeployDemo`. Instances without this tag will not be selected for deployment. For deployment configuration, we select `CodeDeploy.Default.OneAtATime`. This means that any application revision is deployed to the EC2 Instances one at a time. The other configurations are:
+
+* CodeDeploy.Default.AllAtOnce
+  Deploys the application revision to all instances immediately
+
+* CodeDeploy.Default.HalfAtATime
+  Deploys the application revision to half of the instances at a time.
+
+![CodeDeploy](/assets/img/codepipeline-ec2/codedeploy_1.png)
+![CodeDeploy](/assets/img/codepipeline-ec2/codedeploy_2.png)
+
+
+### Setting up CodePipeline
+
+![CodePipeline](/assets/img/codepipeline-ec2/codepipeline.png)
+
+The pipline is created of type V2 and execution mode set to `QUEUED`. This mode allows the stages in the pipeline to run sequentially. The CodePipeline consists of 2 stages:
 
 * Source
 * Deploy
 
-When creating the CodePipeline in console, we can use a new service role but we also need to add in the `GetApplicationRevision` policy else it will fail with permissions error...
+The source stage links to the Github repo via CodeConnection as a source which we setup earlier. The dpeloy stage references the CodeDeploy application and deployment group which we setup earlier. The IAM role for the pipeline would need permissions to access the artifact s3 bucket, the code deploy application and the codeconnection object:
 
-The `Source` stage links to the github repo where the scripts and appspec.yml files are stored. The outputs from this stage are uploaded as a zip bundle in an S3 bucket. This bundle is downloaded by the CodeDeploy agent during deployment and extracted on the instance. As per the appspec.yml file `files` block, the Wordpress files are extracted to `/var/www/html` and the scripts are extracted to the agent working directory. After the `Install` lifecycle has completed, the files will be moved and we can run the setup scripts. The deployment event logs will show the progress and status of each of the hooks.
+{% highlight json %}
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "s3:GetBucketVersioning",
+                "s3:GetBucketLocation",
+                "s3:GetBucketAcl"
+            ],
+            "Condition": {
+                "StringEquals": {
+                    "aws:ResourceAccount": "XXXX"
+                }
+            },
+            "Effect": "Allow",
+            "Resource": "arn:aws:s3:::codepipeline-eu-west-2-pzddz2",
+            "Sid": "AllowS3BucketAccess"
+        },
+        {
+            "Action": [
+                "s3:PutObjectTagging",
+                "s3:PutObjectAcl",
+                "s3:PutObject",
+                "s3:GetObjectVersionTagging",
+                "s3:GetObjectVersion",
+                "s3:GetObjectTagging",
+                "s3:GetObject"
+            ],
+            "Condition": {
+                "StringEquals": {
+                    "aws:ResourceAccount": "XXXX"
+                }
+            },
+            "Effect": "Allow",
+            "Resource": "arn:aws:s3:::codepipeline-eu-west-2-pzddz2/*",
+            "Sid": "AllowS3ObjectAccess"
+        }
+    ]
+}
+{% endhighlight %}
 
-< screenshot of deployment events >
+{% highlight json %}
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": "codestar-connections:UseConnection",
+            "Effect": "Allow",
+            "Resource": "arn:aws:codeconnections:eu-west-2:XXXX:connection/XXXX"
+        }
+    ]
+}
+{% endhighlight %}
+
+Note that for the CodeDeploy policy we need to have `codedeploy::GetApplicationRevision` permission else CodePipeline will fail with a permissions error:
+
+{% highlight json %}
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "codedeploy:RegisterApplicationRevision",
+                "codedeploy:ListDeployments",
+                "codedeploy:ListDeploymentGroups",
+                "codedeploy:GetDeploymentGroup",
+                "codedeploy:GetDeployment",
+                "codedeploy:GetApplicationRevision",
+                "codedeploy:GetApplication",
+                "codedeploy:CreateDeployment"
+            ],
+            "Effect": "Allow",
+            "Resource": [
+                "arn:aws:codedeploy:eu-west-2:XXXX:deploymentgroup:EC2Wordpress/EC2WordpressDG",
+                "arn:aws:codedeploy:eu-west-2:XXXX:application:EC2Wordpress"
+            ]
+        },
+        {
+            "Action": "codedeploy:GetDeploymentConfig",
+            "Effect": "Allow",
+            "Resource": [
+                "arn:aws:codedeploy:*:XXXX:deploymentconfig:CodeDeployDefault.OneAtATime",
+                "arn:aws:codedeploy:*:XXXX:deploymentconfig:CodeDeployDefault.AllAtOnce"
+            ]
+        },
+        {
+            "Action": "codedeploy:ListDeploymentConfigs",
+            "Effect": "Allow",
+            "Resource": "*"
+        },
+        {
+            "Action": [
+                "logs:PutLogEvents",
+                "logs:CreateLogStream",
+                "logs:CreateLogGroup"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:logs:eu-west-2:XXXX:log-group:testpipeline:*"
+        }
+    ]
+}
+{% endhighlight %}
+
+### Testing the pipeline
+
+To test the pipeline, we create an EC2 Instance with a tag of `Name: CodeDeployDemo` deployed into a public subnet on the default vpc. The EC2 Instance role needs to have the `AmazonSSMManagedInstanceCore` role attached in order to use SSM and a policy to read the CodePipeline s3 artifacts directory. This would allow the CodeDeploy agent to download the source code bundle onto the instance:
+
+{% highlight json %}
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "s3:List*",
+                "s3:GetObject",
+                "s3:Get*"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:s3:::codepipeline-eu-west-2-pzddz2/*"
+        }
+    ]
+}
+{% endhighlight %}
+
+[Manual install of CodeDeploy agent on Linux]: https://docs.aws.amazon.com/codedeploy/latest/userguide/codedeploy-agent-operations-install-linux.html
+
+[Install CodeDeploy agent using AWS Systems Manager]: https://docs.aws.amazon.com/codedeploy/latest/userguide/codedeploy-agent-operations-install-ssm.html
+
+We need to install the `CodeDeploy Agent` on the EC2 Instance. This could be a [Manual install of CodeDeploy agent on Linux] or we can [Install CodeDeploy agent using AWS Systems Manager] via SSM Distributor to install using `RunCommand` document with the `AWS CodeDeploy` config. Once installed, we can use SSM to login to the instance and check its status:
+
+{% highlight shell %}
+sudo systemctl status codedeploy-agent
+{% endhighlight %}
+
+![SSM ON EC2](/assets/img/codepipeline-ec2/ec2_ssm.png)
 
 
+You can also view the logs at `/var/log/aws/codedeploy-agent/codedeploy-agent.log`. Further posts will explore how to stream logs into CloudWatch via CloudWatch agent.
+
+To setup the application, we can click on `Release Change` in the pipeline which will run the scripts and install wordpress as shown below:
+
+![CodeDeploy](/assets/img/codepipeline-ec2/application_1.png)
+![CodeDeploy](/assets/img/codepipeline-ec2/application_2.png)
+
+After setting up the application, we can test the pipeline by making a change to one of the Wordpress theme files to update the background colour. This should trigger a pipeline run which we can see below. We can also monitor the events in the deployment via the Deployments page:
 
 
+![CodeDeploy Details](/assets/img/codepipeline-ec2/codedeploy_detail.png)
+
+If the deployment is successful, we should see the background change in the application:
+
+![CodeDeploy](/assets/img/codepipeline-ec2/application_3.png)
+![CodeDeploy](/assets/img/codepipeline-ec2/application_4.png)
+
+In future posts, I hope to cover other topics such as enabling cloudwatch logs and multiple-instance deployments for EC2 via CodePipeline.
