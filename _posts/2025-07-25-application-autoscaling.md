@@ -17,7 +17,7 @@ When working with EC2 instances, we can create an autoscaling group to scale in 
 
 [Application Autoscaling] is an AWS service that automatically scales applications and services based on the metrics you want to track. Once the metrics exceed a specific threshold or a condition is met, this triggers the autoscaling policy which either scales in or scales out. There are four main types of scaling policies:
 
-*  Target tracking policy. This scales a resource based on a target value for a specific Cloudwatch metric.
+*  Target tracking policy. This scales a resource based on a target value for a specific Cloudwatch metric such as CPU or memory. It doesn't require creating a Cloudwatch alarm.
 
 * Step tracking policy. Scales a resource based on a set of scaling adjustments that vary based on size of alarm breach. Requires a Cloudwatch Alarm for the metric.
 
@@ -30,7 +30,8 @@ This post will show an example of applying **Target Tracking** to an ECS service
 We could apply autoscaling after the service has been created either in the console or via the CLI. We can also create the autoscaling resources via Terraform at the same time as creating the ECS service.
 
 Firstly, we need to create an IAM role that will be assumed by application autoscaling. This role needs to assume **application-autoscaling.amazonaws.com** and have both ECS service and cloudwatch logs permissions:
-```
+
+{% highlight terraform %}
 resource "aws_iam_role" "ecs_autoscaling_role" {
   name = "ECSAutoscalingRole"
   assume_role_policy = jsonencode({
@@ -70,11 +71,11 @@ resource "aws_iam_role_policy" "ecs_autoscaling" {
   role   = aws_iam_role.ecs_autoscaling_role.name
   policy = data.aws_iam_policy_document.ecs_autoscaling.json
 }
-```
+{% endhighlight %}
 
 Next, we need to create an **application autoscaling target** which will be the ECS service. We define the desired count from the service as the scalable attribute and specifies a min and max capacity values. This is similar to how Autoscaling groups are configured for EC2 Instances:
 
-```
+{% highlight terraform %}
 resource "aws_appautoscaling_target" "ecs_target" {
   max_capacity       = 4
   min_capacity       = 1
@@ -83,11 +84,11 @@ resource "aws_appautoscaling_target" "ecs_target" {
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
 }
-```
+{% endhighlight %}
 
-Lastly, we create and apply an **application autoscaling policy** to the **autoscaling target** defined above. Each type of autoscaling policy has its own policy configuration block. For **targeted tracking scaling**, we need to define the metric type to measure. According to [Target Tracking policy for ECS], we have 3 types of metrics available: **ECSServiceAverageCPUUtilization, ECSServiceAverageMemoryUtilization, ALBRequestCountPerTarget**. For this example, we are tracking the CPU utilisation:
+Lastly, we create and apply an **application autoscaling policy** to the **autoscaling target** defined above. Each type of autoscaling policy has its own policy configuration block. For **targeted tracking scaling**, we need to define the metric type to measure. According to [Target Tracking policy for ECS], we have 3 types of metrics available: **ECSServiceAverageCPUUtilization, ECSServiceAverageMemoryUtilization, ALBRequestCountPerTarget**. The example below shows the policy for scaling based on CPU usage:
 
-```
+{% highlight terraform %}
 resource "aws_appautoscaling_policy" "ecs_policy" {
   name               = "cpu-scale-out"
   policy_type        = "TargetTrackingScaling"
@@ -105,23 +106,41 @@ resource "aws_appautoscaling_policy" "ecs_policy" {
     scale_out_cooldown = 60
   }
 }
-```
+{% endhighlight %}
 
-The `target_value` specifies the limit upon which the scaling starts. It's set to a test value of 10.0 for testing purposes. The scale in and scale out cooldown values refer to the amount of time to wait before the next scaling event can occur.
+It is also recommended to create a separate policy for memory usage:
+{% highlight terraform %}
+resource "aws_appautoscaling_policy" "ecs_mem_policy" {
+  name               = "memory-scale-out"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.ecs_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_target.service_namespace
 
-Once applied, the scaling configuration is listed under the `ECS Cluster > Service > Service scaling` tab. This is shown in the screenshot below.
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
 
-To test the scaling policy, we can create a one-off scheduled scaling policy from the console and have it activate the scaling...
+    target_value       = 10.0
+    scale_in_cooldown  = 60
+    scale_out_cooldown = 60
+  }
+}
+{% endhighlight %}
 
-( SHOW SCREENSHOT )
+The **target_value** specifies the limit upon which the scaling starts. It's set to a test value of 10.0 for testing purposes. The scale in and scale out cooldown values refer to the amount of time to wait before the next scaling event can occur.
 
-Anoteher option is to use the **Fault Injection Service** to simulate high CPU usage for the ECS service but this requires additional setup for the time being.
+Once applied, the scaling configuration is listed under the `ECS Cluster > Service > Service autoscaling` tab as shown below:
 
-( show screenshot of scaling )
+![Scaling policy tab](/assets/img/aws/application_autoscaling/scaling_policy.png)
 
-The **Events** tab of the service should show the scaling activity occuring. We can see that the number of tasks have increased by one...
+To test the scaling policy, I logged into the application and triggered the memory scale out alarm which resulted in an additional task being provisioned, increasing the desired count to 2:
 
-If we try to scale further, an error message is returned once it reaches 4 concurrent running tasks.
+![Memory scale out](/assets/img/aws/application_autoscaling/memory_scale_out.png)
+![Memory scale out](/assets/img/aws/application_autoscaling/memory_scale_out_activity.png)
 
 
-( show screenshot )
+The **Events** tab of the service should show the scaling activity occuring. We can see that the number of tasks have increased by one:
+
+![Scaling Activities](/assets/img/aws/application_autoscaling/scaling_activities.png)
