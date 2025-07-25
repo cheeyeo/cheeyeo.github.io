@@ -18,7 +18,7 @@ In a previous post, I described a process whereby we could create structured log
 
 [Embedded Metric Format] is a JSON specification that specifies the format of how a custom metric can be embedded within a cloud watch structured log. The example below shows a log entry from an ECS service:
 
-```
+{% highlight json %}
 {
   "_aws": {
     "Timestamp": 1583902595342,
@@ -42,7 +42,7 @@ In a previous post, I described a process whereby we could create structured log
   "taskArn": "arn:aws:ecs:<region>:<account-id>:task/2fe946f6-8a2e-41a4-8fec-c4983bad8f74",
   "ProcessingTime": 5
 }
-```
+{% endhighlight %}
 
 To enable support for the Flask web application in the previous post to produce EMF logs, we need to do the following as documented in [Publishing logs with Embedded Metric Format].
 
