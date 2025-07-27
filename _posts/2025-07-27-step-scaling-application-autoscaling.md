@@ -3,7 +3,7 @@ layout: post
 show_meta: true
 title: Applying Application Autoscaling with Step Scaling for ECS service
 header: Applying Application Autoscaling with Step Scaling for ECS service
-date: 2025-07-30 00:00:00
+date: 2025-07-27 00:00:00
 summary: How to apply application autoscaling using Step Scaling policy for a flask service on ECS
 categories: flask python ecs autoscaling aws
 author: Chee Yeo
