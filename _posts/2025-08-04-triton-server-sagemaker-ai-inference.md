@@ -5,7 +5,7 @@ title: Deploy Triton Server for inference using SageMaker AI Inference
 header: Deploy Triton Server for inference using SageMaker AI Inference
 date: 2025-08-04 00:00:00
 summary: How to deploy a Triton Server for inference on SageMaker AI Inference
-categories: python aws lambda sagemaker triton
+categories: python aws sagemaker triton
 author: Chee Yeo
 ---
 
@@ -105,7 +105,7 @@ parameters: {
 }
 {% endhighlight %}
 
-### Deplpy into SageMaker Inference
+### Deploy into SageMaker Inference
 
 To deploy the models into SageMaker Inference, we need to create a TAR archive of the entire model directory. This TAR archive will be uploaded into S3 and extracted when we create the Inference endpoint. As such, no symlinks can exist else the model creation will fail during endpoint creation. Below is a custom script I used to address this issue:
 
@@ -268,10 +268,9 @@ The script creates a `SageMaker` session client object. Next, it maps the region
 
 After the model is deployed, we create an **endpoint config** using **client.create_endpoint_config** where we specify the inference instance type and number of instances to launch. We create the inference endpoint using **sm_client.create_endpoint**. 
 
-Note that the IAM role used to create the model needs to assume the **sagemaker.amazonaws.com** trust policy have IAM permissions of **AmazonSageMakerFullAccess**. Even though this policy allows for S3 access to any bucket with sagemaker in its name, I was unable to create a deployment successfully due to permission issues. I ended up adding extra inline policy to grant permission to access the target bucket where we uploaded the model repository TAR file.
+Note that the IAM role used to create the model needs to assume the **sagemaker.amazonaws.com** trust policy and have IAM permissions of **AmazonSageMakerFullAccess**. Even though this policy allows for S3 access to any bucket with sagemaker in its name, I was unable to create a deployment successfully due to permission issues. I ended up adding extra inline policy to grant permission to access the target bucket where we uploaded the model repository TAR file.
 
 When completed, the endpoint would show as being **InService** as shown in the screenshots below.
-
 
 ![Sagemaker Model](/assets/img/triton/sagemaker/sagemaker_model.png)
 ![Sagemaker Endpoint](/assets/img/triton/sagemaker/sagemaker_endpoint.png)
@@ -352,6 +351,6 @@ I0804 18:42:46.643633 93 sagemaker_server.cc:190] SageMaker request: 0 /ping
 ...
 {% endhighlight %}
 
-Note that even though we can run Triton both HTTP and GRPC, when deploying via SageMaker Inference, its running only a HTTP service on port 8080. 
+Note that even though we can run Triton both HTTP and GRPC endpoints locally, when deploying via SageMaker Inference, its running only a HTTP service on port 8080. 
 
 In the next post, I will be showing an example of how to test and invoke the provisioned endpoint.
