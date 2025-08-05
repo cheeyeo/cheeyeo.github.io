@@ -5,7 +5,7 @@ title: Introduction to Triton Server
 header: Introduction to Triton Server
 date: 2025-04-24 00:00:00
 summary: Simple intro to the Trition Server for inference
-categories: machine-learning inference trition
+categories: machine-learning inference triton
 author: Chee Yeo
 ---
 
