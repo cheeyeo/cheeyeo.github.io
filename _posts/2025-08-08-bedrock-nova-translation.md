@@ -96,6 +96,7 @@ We set as data attributes the post id; the target div to write the translation t
 The link is invoked via an async javascript function that adds an event handler to all links with the class of **translate**
 
 {% highlight javascript %}
+{% raw %}
       async function translate(event) {
         event.preventDefault();
 
@@ -129,6 +130,7 @@ The link is invoked via an async javascript function that adds an event handler 
           translate(e);
         }
     });
+{% endraw %}
 {% endhighlight %}
 
 The javascript function calls an endpoint **/translate** which is a Flask application route that invokes a custom module to perform the translation:
