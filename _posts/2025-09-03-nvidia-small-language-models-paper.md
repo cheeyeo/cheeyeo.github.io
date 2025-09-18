@@ -3,7 +3,7 @@ layout: post
 show_meta: true
 title: Review of paper 'Small Language Models are the Future of Agentic AI'
 header: Review of paper 'Small Language Models are the Future of Agentic AI'
-date: 2024-08-30 00:00:00
+date: 2025-09-03 00:00:00
 summary: Review of paper 'Small Language Models are the Future of Agentic AI'
 categories: machine-learning agentic-ai
 author: Chee Yeo
@@ -42,26 +42,23 @@ The authors provided a list of contradictions to the value statements made previ
 
 The authors refute this point by stating that the SLM can be easily fine-tuned whereas LLM requires more resources for retraining. The reasoning capability of SLM is afforable as SLM can be scaled during inference time to desired level. The core feature of agentic systems is its ability to perform decompositions of complex problems and inputs hence the invocation of SLM within an agentic system would be on modular sub-tasks so simple that the **semantic hub** from LLM would be of little use.
 
-The authors point out that for organizations with agentic applications deployed, it may be difficult to fully utilize and properly balance the load for an SLM inference endpoint than it is for a LLM endpoint. There are also hidden costs of hiring staff with the right skillset to maintain and develop SLM. However, the authors point out that recent improvements in inference system modularization offer more flexibility and the falling costs of inference infrastructure compared to monolithic clusters.
+The authors point out that while the argument for using SLM is sound, there are still barriers to adoption which include:
 
-In summary, the 
+* The amount of current investments in centralized LLM and inference infra
+* The use of generalist benchmarks in SLM training, design and evaluation
+* The lack of awareness of SLM as it doesn't receive the same level of attention as LLM
 
+Given the above, the authors are still confident that with the availability of lower cost inference infrastructure and edge devices, it's a question of time before SLM gain wider adoption.
 
+From a software developer perspective, AI agents are still software but with a language model as an additional component. Being able to use SLM in an AI agent means that we can develop and test the overall agent locally before deployment. The developer can ensure that the SLM used in an AI agent is fine-tuned using the appropriate dataset and deployed with the right configuration settings before integration into an agentic system. The modular nature of SLM also means that we can have individual specialized models fine-tuned for specific use cases which would allow us to create specialized agents that perform certain tasks really well in the context of sub-tasks decomposition in an agentic system. This is similar to the approach taken when developing distributed applications in the format of micro services. It also means we can test each agent component individually and it also supports the idea of reproducibility.
 
-
-
-
+In summary, the paper sets out a set of propositions that small language models should be used in agentic systems rather than monolithic LLMs. This is due to the fact that agentic systems require deterministic behaviour and interactions and SLM can provide specialized behaviour when fine-tuned appropriately. In addition, the lower number of parameters in SLM means that we can lower the costs of deployment and reduce the environmental impact compared to using LLMs. Lastly, most interactions with LLMs in an agentic system are non-conversational and only use a small subset of an LLM overall ability so an SLM should suffice in such use cases.
 
 
 Citation:
 ```
-@misc{nguyen2024imageworth16x16patches,
-      title={Small Language Models are the Future of Agentic AI}, 
-      author={Peter Belcak, Greg Heinrich, Shizhe Diao, Yonggan Fu, Xin Dong, Saurav Muralidharan, Yingyan Celine Lin, Pavlo Molchanov},
-      year={2025},
-      eprint={2506.02153},
-      archivePrefix={arXiv},
-      primaryClass={cs.AI},
-      url={https://arxiv.org/abs/2506.02153}, 
-}
+Belcak, P., Heinrich, G., Diao, S., Fu, Y., Dong, X., Muralidharan, S., Lin, Y.C., Molchanov,
+P. 2025, 
+'Small Language Models are the Future of Agentic AI',
+arXiv preprint arXiv:2506.02153.
 ```
