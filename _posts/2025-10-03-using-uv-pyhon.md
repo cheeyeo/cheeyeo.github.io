@@ -77,10 +77,9 @@ The `uv sync --locked` command updates the venv to match the lock file exactly, 
 
 #### To migrate an existing project from using pip to uv:
 
-* Create a `requirements` file which has the packages listed but with versions removed. `uv` will attempt to resolve the package versions.
 * Run `uv init` to create a `pyproject.toml` file in project directory.
 * Run `uv venv --python <version>` to create a venv.
-* Run `uv add -r requirements` to import the requirements.
+* Run `uv add -r requirements.txt` to import the requirements.txt file if it exists. This will install all the dependencies and update the uv.lock and pyproject.toml files to match the environment.
 
 The [UV Migration Guide] has more detailed instructions on how to perform the migration including how to manage both development and production dependencies.
 
