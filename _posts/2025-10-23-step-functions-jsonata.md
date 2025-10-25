@@ -10,6 +10,7 @@ author: Chee Yeo
 ---
 
 [Simplifying AWS Step functions with JSONata]: https://aws.amazon.com/blogs/compute/simplifying-developer-experience-with-variables-and-jsonata-in-aws-step-functions/
+[https://try.jsonata.org]: https://try.jsonata.org/
 
 In my previous post, I provided an example of how to create a step function using Lambdas. The lambda functions serve as data validators to check for required fields in the input data. This created a sequential workflow where the data flows through each lambda and executes the next stage if the data is valid; if not it triggers a stage of type `Fail` which reports an error message.
 
@@ -44,7 +45,7 @@ For example, we replaced the lambda function that check for the presence of key 
 
 The input json must contain a `registration_info` object with the following attributes: *daysOfWeek; child; parents*. The JSONata function $count checks that the days of week list is not empty. It also checks for the presence of those three attributes which is the same behaviour as the original Lambda function.
 
-Next, we replace the age check Lambda function to be also be inline:
+Next, we replace the age check Lambda function to be inline:
 {% highlight json %}
 {% raw %}
 {
@@ -62,7 +63,7 @@ Next, we replace the age check Lambda function to be also be inline:
 {% endraw %}
 {% endhighlight %}
 
-The above uses the built-in $now function to obtain the current datetime and converting it into a year value format and applying $number to convert it into an integer. For converting the input data date of birth, we first convert it into milliseconds using `$toMillis` and then converting it back to a year format using `$fromMillis` and specifying the year format. We calculate the difference between the two year values to calculate the age. This is similar in functionality to the Lambda function that checks the age.
+The above uses the built-in `$now()` function to obtain the current datetime and converting it into a year value format and applying `$number()` to convert it into an integer. For converting the input data date of birth, we first convert it into milliseconds using `$toMillis()` and then converting it back to a year format using `$fromMillis()` and specifying the year format. We calculate the difference between the two year values to calculate the age. This is similar in functionality to the Lambda function that checks the age.
 
 Next, we assign the stage outputs to JSONata variables to pass it to later stages:
 
@@ -188,7 +189,7 @@ The `Add Registration` stage calls `dyanmoDB:putItem` to store the registration 
 {% endraw %}
 {% endhighlight %}
 
-Note that we are using some of JSONata built-in functions such as $uuid() to generate a unique ID as primary key and transforming some of the other input values such as concatenating the first and last name. We are also reusing some of the previously assigned variables such as `$inputPayload` and `$Age` directly.
+Note that we are using some of JSONata built-in functions such as `$uuid()` to generate a unique ID as primary key; `$now()` to obtain the current timestamp. JSONata variables allow us to transform data dynamically; in this example, we are concatenating the first and last name values. We are also reusing some of the previously assigned variables such as `$inputPayload` and `$Age` directly.
 
 The complete state machine defintion is provided in the gist below:
 
@@ -196,7 +197,7 @@ The complete state machine defintion is provided in the gist below:
 
 Note that, for the state machine service role, we would need to include additional permission policy to access DynamoDB.
 
-While the removal of the data validation lambdas has simplied the workflow, it has also made the workflow difficult to test as we could have written pytest code for the lambda functions that were removed. For this example, I used the JSONata console at https://try.jsonata.org/ to formulate some of the inline functions before adding it to the state machine definition:
+While the removal of the data validation lambdas has simplied the workflow, it has also made the workflow difficult to test as we could have written pytest code for the lambda functions that were removed. For this example, I used the JSONata console at [https://try.jsonata.org] to formulate some of the inline functions before adding it to the state machine definition:
 
 ![JSONata console](/assets/img/aws/stepfunctions/jsonata_console.png)
 
