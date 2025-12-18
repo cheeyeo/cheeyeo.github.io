@@ -11,15 +11,34 @@ author: Chee Yeo
 
 In a previous post, I showed an example of integrating FastAPI with Cognito as an OAuth provider. Another advanced usage is to introduce scopes into the OAuth flow to refine the authorization of the API.
 
-Scopes are an additional field within the access token that can be used to restrict access to API resources. The default scope returned by Cognito is `aws.cognito.signin.user.admin me` which allows the user to administer their own profile such as updating username etc. 
+Scopes are an additional field within the access token that can be used to restrict access to API resources. The default scope returned by Cognito is `aws.cognito.signin.user.admin me` which allows the user to administer their own Cognito profile such as updating their username. Custom scopes are created by the developer to provide authorization to certain parts of the API, meaning certain FastAPI paths could have a OAuth2 scope declared as a security dependency via the `Security` function.
 
-To add custom scopes to an access token, the recommended approach is to create a Resource server to define the custom scopes and a custom domain with TLS enabled. The application would need to call the custom domain at the Token Endpoint of `/oauth/endpoint` to retrieve the access token with the custom scopes. Usage of the cognito API via cognito-idp boto3 client will not allow retrieval of the custom scopes.
+For example, the route below defines a `Security` dependeny with a custom `me` scope:
+```
+async def get_current_active_user(current_user: Annotated[User, Security(get_current_user_cognito, scopes=["me"])]):
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
 
-Another approach is to create a Lambda trigger which would allow you to add the custom scopes into the access token before its returned from Cognito. This lambda function is known as a PreToken generation Lambda. 
+    return current_user
+```
+
+Scopes are inherited in a tree-like hierarchy. For example, using the previous function, if we were to create another `Security` dependency using it as input, then the new security dependency will inherit the scopes as well as its own scopes:
+
+```
+CurrentActiveUserRandoms = Annotated[User, Security(get_current_active_user, scopes=["randoms"])]
+```
+
+`CurrentActiveUserRandoms` will have both the scopes **me** and **randoms**.
+
+
+To add custom scopes to an access token issued by Cognito, the recommended approach is to create a Resource server to define the custom scopes and a custom domain with TLS enabled. The application would need to call the custom domain at the Token Endpoint at `/oauth/endpoint` to retrieve the access token with the custom scopes. Usage of the cognito API via cognito-idp boto3 client will not allow retrieval of the custom scopes.
+
+Another approach is to create a Lambda trigger which would allow you to add the custom scopes into the access token before its returned from Cognito. This lambda function is known as a `PreToken generation Lambda.` 
 
 TODO: screenshot of how to create the lambda and linked it to user pool in cognito
 
 
 TODO: Lambda code in python showing custom scopes.
+
 
 
