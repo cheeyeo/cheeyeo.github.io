@@ -5,7 +5,7 @@ title: Upgrading Ubuntu
 header: Upgrading Ubuntu 
 date: 2026-01-05 00:00:00
 summary: How to upgrade Ubuntu 20.04 to 22.04 LTS release in place
-categories: ubuntu upgrade
+categories: ubuntu upgrade linux
 author: Chee Yeo
 ---
 
