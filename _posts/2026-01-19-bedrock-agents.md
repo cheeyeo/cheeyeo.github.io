@@ -11,6 +11,10 @@ author: Chee Yeo
 
 [AWS Generative AI and AI Agents with Amazon Bedrock]: https://www.coursera.org/specializations/aws-generative-ai-developers
 
+[Define function details]: https://docs.aws.amazon.com/bedrock/latest/userguide/agents-action-function.html
+
+
+
 In previous posts, I discussed how to build a simple agent using Gemini that runs in the CLI using MCP protocol to provides tools. AWS Bedrock has the same concept of an agent but it differs slightly compared to the previously discussed manual approach.
 
 AWS Bedrock is a model-as-a-service platform whereby you could create generative AI applications by invoking foundational models offered on the platform through API calls. There is no need to host or train models manually as it's a fully managed service. Bedrock Agents allow you to build custom agents that leverages the foundational models offered by the same platform to create agentic workflows that can also integrate with existing AWS services such as Lambda and RDS.
@@ -18,7 +22,8 @@ AWS Bedrock is a model-as-a-service platform whereby you could create generative
 As an example, assuming we are building a HR assistant agent that can query and update an employee's holidays. This example is based on the materials from [AWS Generative AI and AI Agents with Amazon Bedrock].
 
 Firstly, we need to import the dependencies and create the bedrock clients using boto3:
-```
+
+{% highlight python %}
 import json
 import time
 import zipfile
@@ -36,17 +41,17 @@ bedrock_agent_runtime_client = boto3.client('bedrock-agent-runtime')
 session = boto3.session.Session()
 region = session.region_name
 account_id = sts_client.get_caller_identity()["Account"]
-```
+{% endhighlight %}
 
 Next, we define the foundation models to use for the agent:
-```
-inference_profile = "us.amazon.nova-micro-v1:0"
-foundation_model = inference_profile[3:]
-```
+{% highlight python %}
+  inference_profile = "us.amazon.nova-micro-v1:0"
+  foundation_model = inference_profile[3:]
+{% endhighlight %}
 
 Bedrock agents don't use MCP protocol to invoke tools. Instead, it uses lambda functions which we will define shortly. We need to create a lambda function that will have the corresponding code to retrieve and update employees' holidays. We also need to store this information. To keep the example simple, we create a sqlite3 database which will be uploaded with the lambda code. The python snippet below generates some random employees and their vacation times:
 
-```
+{% highlight python %}
 # creating employee database to be used by lambda function
 import sqlite3
 import random
@@ -99,11 +104,11 @@ for i in range(10):
 # Commit the changes and close the connection
 conn.commit()
 conn.close()
-```
+{% endhighlight %}
 
 The lambda function defines two functions **get_available_vacations_days** and **reserve_vacation_time** which will be added to the tool definition later:
 
-```
+{% highlight python %}
 import os
 import json
 import stat
@@ -176,8 +181,6 @@ def reserve_vacation_time(employee_id, start_date, end_date):
     return f"Reserved {vacation_days} vacation days from {start_date} to {end_date} for employee {employee_id}"
 
 
-    
-
 def lambda_handler(event, context):
     print(event)
     print(context)
@@ -232,14 +235,11 @@ def lambda_handler(event, context):
             }
         }
 
-```
+{% endhighlight %}
 
 After creating the lambda function above, we can start to create the agent. Note that we need to define an IAM role for the agent:
 
-
-
-
-```
+{% highlight python %}
 agent_name = "hr-assistant-function-def"
 agent_description = "Agent for providing HR assistance to manage vacation time"
 agent_instruction = "You are an HR agent, helping employees understand HR policies and manage vacation time"
@@ -318,11 +318,11 @@ response = bedrock_agent_client.create_agent(
     instruction=agent_instruction,
 )
 agent_id = response['agent']['agentId']
-```
+{% endhighlight %}
 
-Next, we create an action group in order to associate a Lambda as a tool for the agent:
+Next, we create an action group to define a set of actions that the agent can perform on behalf of the user. In this example, we define the action group using function details as specified in [Define function details]:
 
-```
+{% highlight python %}
 agent_functions = [
     {
         'name': 'get_available_vacations_days',
@@ -370,13 +370,13 @@ agent_action_group_response = bedrock_agent_client.create_agent_action_group(
     },
     description=agent_action_group_description
 )
-```
+{% endhighlight %}
 
-From above, we associate the lambda function created previously and also the function schema. 
+The agent will determine from the user's conversation which action within an action group it needs to invoke. It will obtain all the required parameters and sends it to a Lambda function or returns control in response to an agent invocation. From the example above, we associate the lambda function created previously with the function schema. 
 
-Next, we need to add a Resource Policy to the Lambda function to allow the Bedrock Agent to invoke the lambda directly:
+Next, we need to add a **Resource Policy** to the Lambda function to allow the Bedrock Agent to invoke the lambda directly:
 
-```
+{% highlight python %}
 response = lambda_client.add_permission(
     FunctionName=lambda_function_name,
     StatementId='allow_bedrock',
@@ -384,11 +384,10 @@ response = lambda_client.add_permission(
     Principal='bedrock.amazonaws.com',
     SourceArn=f"arn:aws:bedrock:{region}:{account_id}:agent/{agent_id}",
 )
-```
+{% endhighlight %}
 
 Finally, we create a draft version of the agent with an alias for testing:
-
-```
+{% highlight python %}
 response = bedrock_agent_client.prepare_agent(
     agentId=agent_id
 )
@@ -401,11 +400,10 @@ response = bedrock_agent_client.create_agent_alias(
 )
 
 agent_alias_id = response["agentAlias"]["agentAliasId"]
-```
+{% endhighlight %}
 
 To invoke the agent, we call `invoke_agent` on the bedrock agent runtime client:
-
-```
+{% highlight python %}
 ## create a random id for session initiator id
 session_id:str = str(uuid.uuid1())
 enable_trace:bool = True
@@ -437,17 +435,24 @@ try:
             raise Exception("unexpected event.", event)
 except Exception as e:
     raise Exception("unexpected event.", e)
-```
+{% endhighlight %}
 
-From above, we send a query to the agent to enquire how much holiday time employee number 2 has. The agent will forward the query to the foundational model which will parse the user query and invoke the matching lambda function in its tools definitions. The following is an example output of the event object from the lambda that was invoked from above:
-```
-{'messageVersion': '1.0', 'function': 'get_available_vacations_days', 'parameters': [{'name': 'employee_id', 'type': 'integer', 'value': '1'}], 'sessionAttributes': {}, 'promptSessionAttributes': {}, 'sessionId': '03566378021773', 'agent': {'name': 'hr-assistant-function-def', 'version': 'DRAFT', 'id': 'TFYPZQWBLR', 'alias': 'TSTALIASID'}, 'actionGroup': 'VacationsActionGroup', 'inputText': 'How much vacation does the employee with employee_id set to 1 have available?'}
-```
+From above, we send a query to the agent to enquire how much holiday time employee number 2 has. The agent will forward the query to the foundational model which will parse the user query and invoke the matching lambda function in its tools definitions.
 
-We can make another query to the agent to book 1 day for a specific employee as a test:
-```
+The following is an example output of the event object from the lambda function that was invoked from above:
+
+{% highlight python %}
+{'messageVersion': '1.0', 'function': 'get_available_vacations_days', 'parameters': [{'name': 'employee_id', 'type': 'integer', 'value': '2'}], 'sessionId': '331e8192-f7c9-11f0-9152-cbe55b511572', 'agent': {'name': 'hr-assistant-function-def', 'version': '1', 'id': 'HOJVVJ4OFP', 'alias': 'SNXM4Q0LRN'}, 'actionGroup': 'VacationsActionGroup', 'sessionAttributes': {}, 'promptSessionAttributes': {}, 'inputText': 'How much vacation does the employee with employee_id set to 2 have available?'}
+{% endhighlight %}
+
+![Bedrock Agent Response](/assets/img/aws/bedrock/agents/agent_response.png)
+
+
+We can make another query to the agent to book 3 days of holidays for a specific employee as a test:
+
+{% highlight python %}
 agentResponse = bedrock_agent_runtime_client.invoke_agent(
-    inputText="Great. please reserve one day of time off for the employee with employee_id set to 2 for 2026-01-24",
+    inputText="Great. please reserve time off for the employee with employee_id set to 2 from 2026-01-24 to 2026-01-26",
     agentId=agent_id,
     agentAliasId=agent_alias_id, 
     sessionId=session_id,
@@ -472,11 +477,15 @@ try:
             raise Exception("unexpected event.", event)
 except Exception as e:
     raise Exception("unexpected event.", e)
-```
+{% endhighlight %}
 
-We can test that the agent has completed the task successfully by querying the employee id again:
+![Bedrock Agent Response](/assets/img/aws/bedrock/agents/agent_response_2.png)
 
-```
+The screenshot of the response indicated that the agent has booked the days off.
+
+We can test that the agent has completed the task successfully by querying the remaining holidays for the same employee id again:
+
+{% highlight python %}
 agentResponse = bedrock_agent_runtime_client.invoke_agent(
     inputText="How much vacation does the employee with employee_id set to 2 have available?",
     agentId=agent_id,
@@ -502,16 +511,21 @@ try:
             raise Exception("unexpected event.", event)
 except Exception as e:
     raise Exception("unexpected event.", e)
-```
+{% endhighlight %}
 
-The outputs above should show a reduction in the employee's holidays entitlement.
+![Bedrock Agent Response](/assets/img/aws/bedrock/agents/agent_response_3.png)
 
-The following are pros for building on Bedrock Agents:
+The outputs above should show a reduction in the employee's holidays entitlement from original 22 days to 19 days.
+
+From the perspective of a developer, the following are advantages for building on Bedrock Agents:
 * Catalogue of foundational models to use
 * Can version and test agents individually
 * Use of Lambdas as tools for function calls
 * Able to associate IAM roles and policies for both agents and tools
 * Able to integrate with other AWS services such as IAM
 * Serverless approach means infrastructure is managed for you
+* Use of available frameworks such as LangChain and Kiro to speed up development
 
+[github repo]: https://github.com/cheeyeo/AWS_GENERATIVE_AI_FOR_DEVELOPERS/blob/main/genai-exercise4-agents.ipynb
 
+A working example of the agent can be found at this [github repo]
